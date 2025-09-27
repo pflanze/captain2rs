@@ -12,7 +12,7 @@ The translation is based on the original EmpiricalGrid.py from captain-project/c
 
  */
 
-use ndarray::{Array1, Array2, Array3, Axis, Zip};
+use ndarray::{Array1, Array2, Array3, Axis};
 use ndarray::prelude::*;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;

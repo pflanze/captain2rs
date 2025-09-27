@@ -1,5 +1,4 @@
-use biodivsim::empirical_grid::EmpiricalGrid;
-use ndarray::array;
+use captain2rs::biodivsim::empirical_grid::EmpiricalGrid;
 
 fn main() -> anyhow::Result<()> {
     let mut grid = EmpiricalGrid::new(None, None);
