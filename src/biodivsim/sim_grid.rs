@@ -37,10 +37,10 @@ use std::{
 /// # Returns
 /// A 4D array of shape (length, length, length, length)
 pub fn dispersal_distances_threshold(
-    length: usize,
+    length: u16,
     lambda_0: f64,
-    threshold: usize,
-) -> BTreeMap<(usize, usize, usize, usize), f64> {
+    threshold: u16,
+) -> BTreeMap<(u16, u16, u16, u16), f64> {
     println!("calculating distances with threshold...");
 
     let mut dumping_dist = BTreeMap::new();
@@ -51,10 +51,10 @@ pub fn dispersal_distances_threshold(
     for i in 0..length {
         for j in 0..length {
             let n_min = if i >= threshold { i - threshold } else { 0 };
-            let n_max = usize::min(length, i + threshold);
+            let n_max = u16::min(length, i + threshold);
 
             let m_min = if j >= threshold { j - threshold } else { 0 };
-            let m_max = usize::min(length, j + threshold);
+            let m_max = u16::min(length, j + threshold);
 
             for n in n_min..n_max {
                 for m in m_min..m_max {
