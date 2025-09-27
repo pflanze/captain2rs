@@ -3,6 +3,9 @@ name = "captain2rs"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+overflow-checks = true
+
 [dependencies]
 ouroboros = "0.18.5"
 anyhow = "1.0.65"
