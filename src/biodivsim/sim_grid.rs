@@ -3,7 +3,11 @@ use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
 use ndarray::Array4;
-use std::f64;
+use sprs::CsMat;
+use std::{
+    collections::{BTreeMap, HashMap},
+    f64,
+};
 
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
@@ -36,10 +40,10 @@ pub fn dispersal_distances_threshold(
     length: usize,
     lambda_0: f64,
     threshold: usize,
-) -> Array4<f64> {
+) -> BTreeMap<(usize, usize, usize, usize), f64> {
     println!("calculating distances with threshold...");
 
-    let mut dumping_dist = Array4::<f64>::zeros((length, length, length, length));
+    let mut dumping_dist = BTreeMap::new();
     let exp_rate = 1.0 / lambda_0;
 
     let mut count = 0;
@@ -58,7 +62,8 @@ pub fn dispersal_distances_threshold(
                     let dy = (j as f64 - m as f64).powi(2);
                     let dist = (dx + dy).sqrt();
 
-                    dumping_dist[[i, j, n, m]] = (-exp_rate * dist).exp();
+                    // dumping_dist[[i, j, n, m]] = (-exp_rate * dist).exp();
+                    dumping_dist.insert((i, j, n, m), (-exp_rate * dist).exp());
                     count += 1;
                 }
             }
