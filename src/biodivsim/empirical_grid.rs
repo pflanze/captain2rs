@@ -5,17 +5,17 @@ XX GPT:
 # Notes and gaps
 
 - CSV-only initialization is implemented. NPY loading/saving, pandas-based PU metadata, and external ecosystem glue (e.g., env/policy modules) are intentionally omitted to keep the Rust port focused and buildable. You can add npy support via the ndarray-npy crate if needed.
-- Array shapes and semantics mirror the Python code: abundance tensor is 3D with a singleton third axis; protection and disturbance are column vectors to match broadcast patterns; thresholding and presence/absence rules are preserved exactly.  
-- Randomization and subsampling reproduce the logic, including the safety net to ensure each species retains presence in at least one originally occupied PU.  
+- Array shapes and semantics mirror the Python code: abundance tensor is 3D with a singleton third axis; protection and disturbance are column vectors to match broadcast patterns; thresholding and presence/absence rules are preserved exactly.
+- Randomization and subsampling reproduce the logic, including the safety net to ensure each species retains presence in at least one originally occupied PU.
 
 The translation is based on the original EmpiricalGrid.py from captain-project/captain2, preserving naming and behavior across methods.
 
  */
 
-use ndarray::{Array1, Array2, Array3, Axis};
 use ndarray::prelude::*;
-use rand::{Rng, SeedableRng};
+use ndarray::{Array1, Array2, Array3, Axis};
 use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use rand_distr::{Bernoulli, Distribution};
 use std::collections::HashMap;
 
@@ -137,10 +137,18 @@ impl EmpiricalGrid {
         self.pus_id_ind = (0..self.n_pus).collect();
 
         // Map IDs to indices
-        let sp_index: HashMap<usize, usize> =
-            self.species_id.iter().enumerate().map(|(i, &s)| (s, i)).collect();
-        let pu_index: HashMap<usize, usize> =
-            self.pus_id.iter().enumerate().map(|(i, &u)| (u, i)).collect();
+        let sp_index: HashMap<usize, usize> = self
+            .species_id
+            .iter()
+            .enumerate()
+            .map(|(i, &s)| (s, i))
+            .collect();
+        let pu_index: HashMap<usize, usize> = self
+            .pus_id
+            .iter()
+            .enumerate()
+            .map(|(i, &u)| (u, i))
+            .collect();
 
         // Build h tensor (n_species, n_pus, 1)
         let mut init_h = Array3::<f64>::zeros((self.n_species, self.n_pus, 1));
@@ -195,7 +203,9 @@ impl EmpiricalGrid {
         // Reorder h along PU axis
         let mut h_new = Array3::<f64>::zeros((self.n_species, self.n_pus, 1));
         for (new_ui, &old_ui) in order.iter().enumerate() {
-            h_new.slice_mut(s![.., new_ui, ..]).assign(&self.h.slice(s![.., old_ui, ..]));
+            h_new
+                .slice_mut(s![.., new_ui, ..])
+                .assign(&self.h.slice(s![.., old_ui, ..]));
         }
         self.h = h_new;
 
@@ -214,7 +224,11 @@ impl EmpiricalGrid {
 
     pub fn individuals_per_species(&self) -> Array1<f64> {
         // sum over (i, j) axes: shape (s)
-        self.h.sum_axis(Axis(1)).sum_axis(Axis(2)).into_dimensionality::<Ix1>().unwrap()
+        self.h
+            .sum_axis(Axis(1))
+            .sum_axis(Axis(2))
+            .into_dimensionality::<Ix1>()
+            .unwrap()
     }
 
     pub fn individuals_per_cell(&self) -> Array2<f64> {
@@ -231,30 +245,47 @@ impl EmpiricalGrid {
                 tmp[[si, ui, 0]] *= pm;
             }
         }
-        tmp.sum_axis(Axis(1)).sum_axis(Axis(2)).into_dimensionality::<Ix1>().unwrap()
+        tmp.sum_axis(Axis(1))
+            .sum_axis(Axis(2))
+            .into_dimensionality::<Ix1>()
+            .unwrap()
     }
 
     pub fn geo_range_per_species(&self) -> Array1<f64> {
         // presence/absence by cell, not within cell; temp > 1 -> 1, else 0
         let mut temp = self.h.clone();
         temp.map_inplace(|v| {
-            if *v > 1.0 { *v = 1.0; } else { *v = 0.0; }
+            if *v > 1.0 {
+                *v = 1.0;
+            } else {
+                *v = 0.0;
+            }
         });
-        temp.sum_axis(Axis(1)).sum_axis(Axis(2)).into_dimensionality::<Ix1>().unwrap()
+        temp.sum_axis(Axis(1))
+            .sum_axis(Axis(2))
+            .into_dimensionality::<Ix1>()
+            .unwrap()
     }
 
     pub fn species_per_cell(&self) -> Array2<f64> {
         // threshold only used for total pop; within cell, >1 ->1, else 0
         let mut pa = self.h.clone();
         pa.map_inplace(|v| {
-            if *v > 1.0 { *v = 1.0; } else { *v = 0.0; }
+            if *v > 1.0 {
+                *v = 1.0;
+            } else {
+                *v = 0.0;
+            }
         });
         pa.sum_axis(Axis(0))
     }
 
     pub fn number_of_species(&self) -> usize {
         let totals = self.individuals_per_species();
-        totals.iter().filter(|&&x| x > self.species_threshold).count()
+        totals
+            .iter()
+            .filter(|&&x| x > self.species_threshold)
+            .count()
     }
 
     pub fn extinct_species_id(&self) -> Vec<usize> {
@@ -262,7 +293,13 @@ impl EmpiricalGrid {
         self.species_id
             .iter()
             .zip(totals.iter())
-            .filter_map(|(&sid, &x)| if x < self.species_threshold { Some(sid) } else { None })
+            .filter_map(|(&sid, &x)| {
+                if x < self.species_threshold {
+                    Some(sid)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
@@ -271,7 +308,13 @@ impl EmpiricalGrid {
         self.species_id_indx
             .iter()
             .zip(totals.iter())
-            .filter_map(|(&idx, &x)| if x < self.species_threshold { Some(idx) } else { None })
+            .filter_map(|(&idx, &x)| {
+                if x < self.species_threshold {
+                    Some(idx)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
@@ -280,7 +323,11 @@ impl EmpiricalGrid {
         self.counter += 1;
     }
 
-    pub fn update_protection_matrix(&mut self, protection_matrix: Option<Array2<f64>>, indx: Option<&[usize]>) {
+    pub fn update_protection_matrix(
+        &mut self,
+        protection_matrix: Option<Array2<f64>>,
+        indx: Option<&[usize]>,
+    ) {
         if let Some(pm) = protection_matrix {
             self.protection_matrix = pm;
         }
@@ -305,7 +352,11 @@ impl EmpiricalGrid {
         let species_sensitivity: Array1<f64> = if let Some(s) = &self.species_sensitivities {
             s.clone()
         } else {
-            Array1::from((0..self.n_species).map(|_| rng.gen::<f64>()).collect::<Vec<_>>())
+            Array1::from(
+                (0..self.n_species)
+                    .map(|_| rng.gen::<f64>())
+                    .collect::<Vec<_>>(),
+            )
         };
 
         let disturbance = match &self.disturbance_matrix {
