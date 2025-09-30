@@ -9,6 +9,8 @@ use std::{
     f64,
 };
 
+use crate::coo::Coo4;
+
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
 //                                 lambda_0: float,
@@ -36,14 +38,10 @@ use std::{
 ///
 /// # Returns
 /// A 4D array of shape (length, length, length, length)
-pub fn dispersal_distances_threshold(
-    length: u16,
-    lambda_0: f64,
-    threshold: u16,
-) -> BTreeMap<(u16, u16, u16, u16), f64> {
+pub fn dispersal_distances_threshold(length: u16, lambda_0: f64, threshold: u16) -> Coo4 {
     println!("calculating distances with threshold...");
 
-    let mut dumping_dist = BTreeMap::new();
+    let mut dumping_dist = Coo4::new();
     let exp_rate = 1.0 / lambda_0;
 
     let mut count = 0;
