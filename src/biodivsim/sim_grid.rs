@@ -61,7 +61,9 @@ pub fn dispersal_distances_threshold(length: u16, lambda_0: f64, threshold: u16)
                     let dist = (dx + dy).sqrt();
 
                     // dumping_dist[[i, j, n, m]] = (-exp_rate * dist).exp();
-                    dumping_dist.insert((i, j, n, m), (-exp_rate * dist).exp());
+                    dumping_dist
+                        .insert((i, j, n, m), (-exp_rate * dist).exp())
+                        .expect("sorted");
                     count += 1;
                 }
             }
