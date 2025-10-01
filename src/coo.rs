@@ -122,4 +122,24 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
     pub fn len(&self) -> usize {
         self.points.len()
     }
+
+    pub fn to_coords_and_values(&self) -> (Vec<[C; D]>, Vec<V>)
+    where
+        V: Copy,
+    {
+        (
+            self.points.iter().map(|(coords, _)| *coords).collect(),
+            self.points.iter().map(|(_, val)| *val).collect(),
+        )
+    }
+
+    /// Not currently faster than `to_coords_and_values`, but could
+    /// change implementation to do so (needs custom sort). Currently
+    /// needs `V: Copy` for the same reason.
+    pub fn into_coords_and_values(self) -> (Vec<[C; D]>, Vec<V>)
+    where
+        V: Copy,
+    {
+        self.to_coords_and_values()
+    }
 }
