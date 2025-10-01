@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::Index};
+use std::{array::from_fn, fmt::Debug, ops::Index};
 
 use anyhow::{bail, Result};
 use num_traits::PrimInt;
@@ -18,6 +18,10 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
             points: Vec::new(),
             is_sorted: true,
         }
+    }
+
+    pub fn fill_value(&self) -> &V {
+        &self.default
     }
 
     fn _insert<const REPORT_ERROR: bool>(&mut self, coords: [C; D], val: V) -> Result<()> {
@@ -125,20 +129,26 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
         self.points.len()
     }
 
-    pub fn to_coords_and_values(&self) -> (Vec<[C; D]>, Vec<V>)
+    pub fn to_coords_and_values(&self) -> ([Vec<C>; D], Vec<V>)
     where
         V: Copy,
     {
-        (
-            self.points.iter().map(|(coords, _)| *coords).collect(),
-            self.points.iter().map(|(_, val)| *val).collect(),
-        )
+        let mut cords: [Vec<C>; D] = from_fn(|_| Vec::new());
+        let mut vals = Vec::new();
+        for (coords, val) in &self.points {
+            for (i, c) in coords.iter().enumerate() {
+                cords[i].push(*c);
+            }
+            vals.push(*val);
+        }
+
+        (cords, vals)
     }
 
     /// Not currently faster than `to_coords_and_values`, but could
     /// change implementation to do so (needs custom sort). Currently
     /// needs `V: Copy` for the same reason.
-    pub fn into_coords_and_values(self) -> (Vec<[C; D]>, Vec<V>)
+    pub fn into_coords_and_values(self) -> ([Vec<C>; D], Vec<V>)
     where
         V: Copy,
     {
