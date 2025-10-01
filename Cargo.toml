@@ -8,7 +8,7 @@ overflow-checks = true
 
 [dependencies]
 ouroboros = "0.18.5"
-anyhow = "1.0.65"
+anyhow = "1.0.81"
 clap = { version = "3", features = ["derive"] }
 terminal_size = "0.2"
 #lazy_static = "1.4"
