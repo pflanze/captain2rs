@@ -1,4 +1,5 @@
 use ndarray::Array1;
+use numpy::{pyo3, pyo3::prelude::*};
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
@@ -70,6 +71,22 @@ pub fn dispersal_distances_threshold(
     dbg!(count);
 
     dumping_dist
+}
+
+#[pyfunction]
+pub fn dispersal_distances_threshold_rs<'py>(
+    py: Python<'py>,
+    length: u32,
+    lambda_0: f64,
+    threshold: u32,
+) -> pyo3::PyResult<Bound<'py, PyAny>> {
+    dispersal_distances_threshold(length, lambda_0, threshold).to_numpy(py)
+}
+
+#[pymodule]
+fn captain2rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_rs, m)?)?;
+    Ok(())
 }
 
 // def add_random_error(probs, sig=0.1):
