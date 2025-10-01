@@ -29,6 +29,8 @@ where
         let (coords, data) = self.to_coords_and_values();
         let coords_py = PyArray2::from_owned_array(py, coords.into());
         let data_py = PyArray1::from_vec(py, data);
+        dbg!(&coords_py);
+        dbg!(&data_py);
 
         let sparse = py.import("sparse")?;
         sparse.getattr("COO")?.call1((coords_py, data_py))
