@@ -93,13 +93,28 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
     }
 
     /// Must only be called on a sorted self, otherwise panics!
-    pub fn get(&self, coords: [C; D]) -> Option<&V> {
+    pub fn get_ref(&self, coords: [C; D]) -> Option<&V> {
         assert!(self.is_sorted);
         match self
             .points
             .binary_search_by_key(&coords, |(coords, _)| *coords)
         {
             Ok(i) => Some(&self.points[i].1),
+            Err(_) => None,
+        }
+    }
+
+    /// Must only be called on a sorted self, otherwise panics!
+    pub fn get(&self, coords: [C; D]) -> Option<V>
+    where
+        V: Copy,
+    {
+        assert!(self.is_sorted);
+        match self
+            .points
+            .binary_search_by_key(&coords, |(coords, _)| *coords)
+        {
+            Ok(i) => Some(self.points[i].1),
             Err(_) => None,
         }
     }

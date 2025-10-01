@@ -31,7 +31,11 @@ use crate::coo::Coo;
 ///
 /// # Returns
 /// A 4D array of shape (length, length, length, length)
-pub fn dispersal_distances_threshold(length: u32, lambda_0: f64, threshold: u32) -> Coo<i64, 4, f64> {
+pub fn dispersal_distances_threshold(
+    length: u32,
+    lambda_0: f64,
+    threshold: u32,
+) -> Coo<i64, 4, f64> {
     println!("calculating distances with threshold...");
 
     let mut dumping_dist = Coo::new();
