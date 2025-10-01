@@ -38,7 +38,7 @@ pub fn dispersal_distances_threshold(
 ) -> Coo<i64, 4, f64> {
     println!("calculating distances with threshold...");
 
-    let mut dumping_dist = Coo::new();
+    let mut dumping_dist = Coo::new(0.);
     let exp_rate = 1.0 / lambda_0;
 
     let mut count = 0;

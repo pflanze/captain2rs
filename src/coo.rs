@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Index};
 
 use anyhow::{bail, Result};
 use num_traits::PrimInt;
@@ -6,13 +6,15 @@ use num_traits::PrimInt;
 /// C is the type of the coordinate components, D is the
 /// dimensionality, V is the value type.
 pub struct Coo<C: PrimInt, const D: usize, V> {
+    default: V,
     points: Vec<([C; D], V)>,
     is_sorted: bool,
 }
 
 impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
-    pub fn new() -> Self {
+    pub fn new(default: V) -> Self {
         Self {
+            default,
             points: Vec::new(),
             is_sorted: true,
         }
@@ -141,5 +143,13 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
         V: Copy,
     {
         self.to_coords_and_values()
+    }
+}
+
+impl<C: PrimInt + Debug, const D: usize, V> Index<[C; D]> for Coo<C, D, V> {
+    type Output = V;
+
+    fn index(&self, index: [C; D]) -> &Self::Output {
+        self.get_ref(index).unwrap_or(&self.default)
     }
 }
