@@ -65,6 +65,7 @@ dependencies = [
  "clap",
  "csv",
  "ndarray",
+ "num-traits",
  "ouroboros",
  "rand",
  "rand_distr",

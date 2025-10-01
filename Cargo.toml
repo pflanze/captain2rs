@@ -11,6 +11,7 @@ ouroboros = "0.18.5"
 anyhow = "1.0.81"
 clap = { version = "3", features = ["derive"] }
 terminal_size = "0.2"
+num-traits = "0.2.15"
 #lazy_static = "1.4"
 #itertools = "0.11.0"
 #thiserror = "1.0.37"
