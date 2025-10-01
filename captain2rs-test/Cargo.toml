@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-captain2rs = { path = "captain2rs" }
+captain2rs = { path = "../captain2rs" }
 
 ouroboros = "0.18.5"
 anyhow = "1.0.81"

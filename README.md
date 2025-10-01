@@ -13,15 +13,15 @@ Trying to implement small parts of [captain2](https://github.com/captain-project
 
 ## Build
 
-### Rust-only tests
+### Run the Rust-only tests
 
-From the toplevel of the clone:
+From the nested captain2rs-test subdirectory:
 
 ```shell
-~/captain2rs$ cargo run --release --bin main
+~/captain2rs/captain2rs-test$ cargo run --release --bin main
 ```
 
-### To use from Python
+### Build the library to use from Python
 
 From the nested captain2rs subdirectory:
 
