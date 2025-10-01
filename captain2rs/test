@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+
+from captain2rs import dispersal_distances_threshold_rs
+print(dispersal_distances_threshold_rs(2, 0.1, 3))
