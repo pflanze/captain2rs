@@ -77,26 +77,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "captain2rs-test"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "captain2rs",
- "clap",
- "csv",
- "ndarray",
- "num-traits",
- "numpy",
- "ouroboros",
- "pyo3",
- "rand",
- "rand_distr",
- "rayon",
- "sprs",
- "terminal_size",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
