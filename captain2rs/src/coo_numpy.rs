@@ -9,10 +9,7 @@ use numpy::{
 
 use crate::coo::Coo;
 
-impl<C: PrimInt + Debug, const D: usize, V: Copy + numpy::Element> Coo<C, D, V>
-where
-    C: numpy::Element,
-{
+impl<C: PrimInt + Debug + numpy::Element, const D: usize, V: Copy + numpy::Element> Coo<C, D, V> {
     pub fn to_numpy<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (coords, data): ([Vec<C>; D], Vec<V>) = self.to_coords_and_values();
         let nnz = data.len();
