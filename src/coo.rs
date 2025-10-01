@@ -1,11 +1,16 @@
-use anyhow::{bail, Result};
+use std::fmt::Debug;
 
-pub struct Coo4 {
-    points: Vec<((u16, u16, u16, u16), f64)>,
+use anyhow::{bail, Result};
+use num_traits::PrimInt;
+
+/// C is the type of the coordinate components, D is the
+/// dimensionality, V is the value type.
+pub struct Coo<C: PrimInt, const D: usize, V> {
+    points: Vec<([C; D], V)>,
     is_sorted: bool,
 }
 
-impl Coo4 {
+impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
     pub fn new() -> Self {
         Self {
             points: Vec::new(),
@@ -13,11 +18,7 @@ impl Coo4 {
         }
     }
 
-    fn _insert<const REPORT_ERROR: bool>(
-        &mut self,
-        coords: (u16, u16, u16, u16),
-        val: f64,
-    ) -> Result<()> {
+    fn _insert<const REPORT_ERROR: bool>(&mut self, coords: [C; D], val: V) -> Result<()> {
         if self.is_sorted || REPORT_ERROR {
             if let Some((last_coords, _)) = self.points.last() {
                 if !(last_coords < &coords) {
@@ -36,14 +37,22 @@ impl Coo4 {
 
     /// Gives an error if the coordinates are not after those lsat
     /// inserted.
-    pub fn insert(&mut self, coords: (u16, u16, u16, u16), val: f64) -> Result<()> {
+    pub fn insert<C0>(&mut self, coords: [C0; D], val: V) -> Result<()>
+    where
+        C: From<C0>,
+    {
+        let coords = coords.map(From::from);
         self._insert::<true>(coords, val)
     }
 
     /// Does not gives an error if the coordinates are not after those
     /// lsat inserted, but marks the tensor as unsorted (must be
     /// sorted before it can be used for retrievals)
-    pub fn insert_unchecked(&mut self, coords: (u16, u16, u16, u16), val: f64) {
+    pub fn insert_unchecked<C0>(&mut self, coords: [C0; D], val: V)
+    where
+        C: From<C0>,
+    {
+        let coords = coords.map(From::from);
         _ = self._insert::<false>(coords, val);
     }
 
@@ -84,13 +93,13 @@ impl Coo4 {
     }
 
     /// Must only be called on a sorted self, otherwise panics!
-    pub fn get(&self, coords: (u16, u16, u16, u16)) -> Option<f64> {
+    pub fn get(&self, coords: [C; D]) -> Option<&V> {
         assert!(self.is_sorted);
         match self
             .points
             .binary_search_by_key(&coords, |(coords, _)| *coords)
         {
-            Ok(i) => Some(self.points[i].1),
+            Ok(i) => Some(&self.points[i].1),
             Err(_) => None,
         }
     }

@@ -1,15 +1,8 @@
-use ndarray::{Array1, ArrayBase, ArrayD, IxDyn, OwnedRepr};
+use ndarray::Array1;
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
-use ndarray::Array4;
-use sprs::CsMat;
-use std::{
-    collections::{BTreeMap, HashMap},
-    f64,
-};
-
-use crate::coo::Coo4;
+use crate::coo::Coo;
 
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
@@ -38,10 +31,10 @@ use crate::coo::Coo4;
 ///
 /// # Returns
 /// A 4D array of shape (length, length, length, length)
-pub fn dispersal_distances_threshold(length: u16, lambda_0: f64, threshold: u16) -> Coo4 {
+pub fn dispersal_distances_threshold(length: u32, lambda_0: f64, threshold: u32) -> Coo<i64, 4, f64> {
     println!("calculating distances with threshold...");
 
-    let mut dumping_dist = Coo4::new();
+    let mut dumping_dist = Coo::new();
     let exp_rate = 1.0 / lambda_0;
 
     let mut count = 0;
@@ -49,10 +42,10 @@ pub fn dispersal_distances_threshold(length: u16, lambda_0: f64, threshold: u16)
     for i in 0..length {
         for j in 0..length {
             let n_min = if i >= threshold { i - threshold } else { 0 };
-            let n_max = u16::min(length, i + threshold);
+            let n_max = u32::min(length, i + threshold);
 
             let m_min = if j >= threshold { j - threshold } else { 0 };
-            let m_max = u16::min(length, j + threshold);
+            let m_max = u32::min(length, j + threshold);
 
             for n in n_min..n_max {
                 for m in m_min..m_max {
@@ -62,7 +55,7 @@ pub fn dispersal_distances_threshold(length: u16, lambda_0: f64, threshold: u16)
 
                     // dumping_dist[[i, j, n, m]] = (-exp_rate * dist).exp();
                     dumping_dist
-                        .insert((i, j, n, m), (-exp_rate * dist).exp())
+                        .insert([i, j, n, m], (-exp_rate * dist).exp())
                         .expect("sorted");
                     count += 1;
                 }
