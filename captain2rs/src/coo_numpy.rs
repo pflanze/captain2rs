@@ -9,17 +9,6 @@ use numpy::{
 
 use crate::coo::Coo;
 
-// pub trait CooToNumPy {
-//     fn to_numpy(&self) ->
-// }
-
-// impl CooToNumPy for Coo {
-//     fn to_numpy(&self) -> {
-
-//     }
-// }
-
-// XX move to trait to allow as separate crate
 impl<C: PrimInt + Debug, const D: usize, V: Copy + numpy::Element> Coo<C, D, V>
 where
     C: numpy::Element,

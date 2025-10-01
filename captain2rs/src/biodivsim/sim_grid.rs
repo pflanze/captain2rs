@@ -57,8 +57,6 @@ pub fn dispersal_distances_threshold(
                     let dx = (i as f64 - n as f64).powi(2);
                     let dy = (j as f64 - m as f64).powi(2);
                     let dist = (dx + dy).sqrt();
-
-                    // dumping_dist[[i, j, n, m]] = (-exp_rate * dist).exp();
                     dumping_dist
                         .insert([i, j, n, m], (-exp_rate * dist).exp())
                         .expect("sorted");
