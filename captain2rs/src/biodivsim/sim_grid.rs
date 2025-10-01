@@ -83,10 +83,9 @@ pub fn dispersal_distances_threshold_rs<'py>(
     dispersal_distances_threshold(length, lambda_0, threshold).to_numpy(py)
 }
 
-#[pymodule]
+#[pymodule(name = "captain2rs")]
 fn captain2rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_rs, m)?)?;
-    Ok(())
+    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_rs, m)?)
 }
 
 // def add_random_error(probs, sig=0.1):
