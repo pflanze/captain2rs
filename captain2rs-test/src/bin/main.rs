@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     x.insert_unchecked([0, 2, 3, 4], 1.2);
     assert!(!x.is_sorted());
 
-    let slow = false;
+    let slow = true;
     if slow {
         x.sort()?;
         assert!(x.is_sorted());
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
         assert_eq!(x.get([0, 2, 3, 54]), None);
         assert_eq!(
             x.insert([0, 2, 3, 5], 1.2).err().unwrap().to_string(),
-            "not strictly increasing coordinates: [999, 999, 999, 999] vs. [0, 2, 3, 5]"
+            "not strictly increasing coordinates: [999, 1000, 3, 4] vs. [0, 2, 3, 5]"
         );
         x.sort()?;
     }
