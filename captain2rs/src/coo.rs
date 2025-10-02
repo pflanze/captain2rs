@@ -5,6 +5,7 @@ use num_traits::PrimInt;
 
 /// C is the type of the coordinate components, D is the
 /// dimensionality, V is the value type.
+#[derive(Debug, Clone)]
 pub struct Coo<C: PrimInt, const D: usize, V> {
     default: V,
     points: Vec<([C; D], V)>,
