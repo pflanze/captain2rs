@@ -55,7 +55,7 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
     /// Does not gives an error if the coordinates are not after those
     /// lsat inserted, but marks the tensor as unsorted (must be
     /// sorted before it can be used for retrievals)
-    pub fn insert_unchecked<C0>(&mut self, coords: [C0; D], val: V)
+    pub fn insert_unordered<C0>(&mut self, coords: [C0; D], val: V)
     where
         C: From<C0>,
     {
