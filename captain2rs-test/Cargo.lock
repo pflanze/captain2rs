@@ -88,7 +88,6 @@ dependencies = [
  "num-traits",
  "numpy",
  "ouroboros",
- "pyo3",
  "rand",
  "rand_distr",
  "rayon",
