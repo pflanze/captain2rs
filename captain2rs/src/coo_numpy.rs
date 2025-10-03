@@ -10,7 +10,7 @@ use numpy::{
 use crate::coo::Coo;
 
 impl<C: PrimInt + Debug + numpy::Element, const D: usize, V: Copy + numpy::Element> Coo<C, D, V> {
-    pub fn to_numpy<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    pub fn to_python_sparse<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (coords, data): ([Vec<C>; D], Vec<V>) = self.to_coords_and_values();
         let nnz = data.len();
 
@@ -31,6 +31,8 @@ impl<C: PrimInt + Debug + numpy::Element, const D: usize, V: Copy + numpy::Eleme
         let sparse = py.import("sparse")?;
         // XXX pass fill_value!
         // assert_eq!(self.fill_value(), &0.);
+
+        // sparse.COO((coords, data))
         sparse.getattr("COO")?.call1((coords_py, data_py))
     }
 }

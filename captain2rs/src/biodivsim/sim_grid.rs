@@ -78,7 +78,7 @@ pub fn dispersal_distances_threshold_rs<'py>(
     lambda_0: f64,
     threshold: u32,
 ) -> pyo3::PyResult<Bound<'py, PyAny>> {
-    dispersal_distances_threshold(length, lambda_0, threshold).to_numpy(py)
+    dispersal_distances_threshold(length, lambda_0, threshold).to_python_sparse(py)
 }
 
 #[pymodule(name = "captain2rs")]
