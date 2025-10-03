@@ -10,6 +10,7 @@ use numpy::{
 use crate::coo::Coo;
 
 impl<C: PrimInt + Debug + numpy::Element, const D: usize, V: Copy + numpy::Element> Coo<C, D, V> {
+    /// Convert into a Python `sparse` package object
     pub fn to_python_sparse<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (coords, data): ([Vec<C>; D], Vec<V>) = self.to_coords_and_values();
         let nnz = data.len();
