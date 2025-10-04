@@ -2,9 +2,13 @@
 
 from captain2rs import dispersal_distances_threshold_rs
 
-v = dispersal_distances_threshold_rs(2, 0.1, 3, True)
+v = dispersal_distances_threshold_rs(2, 0.1, 3, True, None)
 print(v)
 print(v[(0,1,1,0)])
 assert(v[(0,1,1,0)] == 7.213541526967138e-07)
-
 assert(v[(5, 9, 7, 1)] == -7.3456)
+assert(v[(5, 9, 7, 0)] == 0.0)
+
+v = dispersal_distances_threshold_rs(100, 0.1, 3, False, 9.3)
+print(v[(5, 9, 7, 1)])
+assert(v[(5, 9, 7, 1)] == 9.3)

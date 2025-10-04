@@ -37,10 +37,12 @@ pub fn dispersal_distances_threshold(
     lambda_0: f64,
     threshold: u32,
     test_hack: bool,
+    default: Option<f64>,
 ) -> Coo<i64, 4, f64> {
     println!("calculating distances with threshold...");
+    println!("default = {default:?}");
 
-    let mut dumping_dist = Coo::new(0.);
+    let mut dumping_dist = Coo::new(default.unwrap_or(0.));
     let exp_rate = 1.0 / lambda_0;
 
     let mut count = 0;
@@ -83,8 +85,10 @@ pub fn dispersal_distances_threshold_rs<'py>(
     lambda_0: f64,
     threshold: u32,
     test_hack: bool,
+    default: Option<f64>,
 ) -> pyo3::PyResult<Bound<'py, PyAny>> {
-    dispersal_distances_threshold(length, lambda_0, threshold, test_hack).to_python_sparse(py)
+    dispersal_distances_threshold(length, lambda_0, threshold, test_hack, default)
+        .to_python_sparse(py)
 }
 
 #[pymodule(name = "captain2rs")]

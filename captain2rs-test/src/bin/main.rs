@@ -6,21 +6,22 @@ use captain2rs::biodivsim::sim_grid::dispersal_distances_threshold;
 fn main() -> Result<()> {
     let debug = true;
     if debug {
-        let mut x = dispersal_distances_threshold(3, 0.1, 1, false);
+        let mut x = dispersal_distances_threshold(3, 0.1, 1, false, None);
         x.insert_unordered([0, 1, 0, 2], 1.23456);
         x.sort()?;
+        assert_eq!(x[[0, 2, 3, 4]], 0.);
         dbg!(&x);
     }
 
     {
-        let mut x = dispersal_distances_threshold(1000, 0.1, 3, true);
+        let mut x = dispersal_distances_threshold(1000, 0.1, 3, true, Some(6.993));
         dbg!(x.len());
         assert_eq!(x.len(), 35892082);
         assert!(!x.is_sorted());
         x.sort()?;
         assert_eq!(x.get([999, 999, 999, 999]), Some(1.0));
         assert_eq!(x.get([0, 2, 3, 4]), None);
-        assert_eq!(x[[0, 2, 3, 4]], 0.);
+        assert_eq!(x[[0, 2, 3, 4]], 6.993);
         x.insert_unordered([999, 1000, 3, 4], 1.3);
         assert!(x.is_sorted());
         x.insert_unordered([0, 2, 3, 4], 1.2);
