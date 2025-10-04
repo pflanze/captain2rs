@@ -132,7 +132,7 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
 
     pub fn to_coords_and_values(&self) -> ([Vec<C>; D], Vec<V>)
     where
-        V: Copy,
+        V: Clone,
     {
         let mut cords: [Vec<C>; D] = from_fn(|_| Vec::new());
         let mut vals = Vec::new();
@@ -140,7 +140,7 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
             for (i, c) in coords.iter().enumerate() {
                 cords[i].push(*c);
             }
-            vals.push(*val);
+            vals.push(val.clone());
         }
 
         (cords, vals)

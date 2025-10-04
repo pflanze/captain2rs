@@ -3,15 +3,23 @@ use std::fmt::Debug;
 use ndarray::Array2;
 use num_traits::PrimInt;
 use numpy::{
-    pyo3::{types::PyAnyMethods, Bound, PyAny, PyResult, Python},
+    pyo3::{
+        prelude::*,
+        types::{PyAnyMethods, PyDict},
+        Bound, IntoPyObject, PyAny, PyResult, Python,
+    },
     PyArray1, PyArray2,
 };
 
 use crate::coo::Coo;
 
-impl<C: PrimInt + Debug + numpy::Element, const D: usize, V: Copy + numpy::Element> Coo<C, D, V> {
+impl<C: PrimInt + Debug + numpy::Element, const D: usize, V> Coo<C, D, V> {
     /// Convert into a Python `sparse` package object
-    pub fn to_python_sparse<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    pub fn to_python_sparse<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>>
+    where
+        V: Clone + numpy::Element + IntoPyObject<'py>,
+        pyo3::PyErr: From<<V as IntoPyObject<'py>>::Error>,
+    {
         let (coords, data): ([Vec<C>; D], Vec<V>) = self.to_coords_and_values();
         let nnz = data.len();
 
@@ -29,11 +37,10 @@ impl<C: PrimInt + Debug + numpy::Element, const D: usize, V: Copy + numpy::Eleme
         dbg!(&coords_py);
         dbg!(&data_py);
 
+        // `sparse.COO((coords, data), fill_value: ...)`
         let sparse = py.import("sparse")?;
-        // XXX pass fill_value!
-        // assert_eq!(self.fill_value(), &0.);
-
-        // sparse.COO((coords, data))
-        sparse.getattr("COO")?.call1((coords_py, data_py))
+        let d = PyDict::new(py);
+        d.set_item("fill_value", self.fill_value().clone())?;
+        sparse.getattr("COO")?.call((coords_py, data_py), Some(&d))
     }
 }
