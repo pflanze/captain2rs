@@ -37,7 +37,7 @@ impl<C: PrimInt + Debug + numpy::Element, const D: usize, V> Coo<C, D, V> {
         dbg!(&coords_py);
         dbg!(&data_py);
 
-        // `sparse.COO((coords, data), fill_value: ...)`
+        // `sparse.COO((coords, data), fill_value = ...)`
         let sparse = py.import("sparse")?;
         let d = PyDict::new(py);
         d.set_item("fill_value", self.fill_value().clone())?;
