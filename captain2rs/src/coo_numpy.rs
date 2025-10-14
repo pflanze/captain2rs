@@ -27,8 +27,8 @@ impl<C: PrimInt + Debug + numpy::Element, const D: usize, V> Coo<C, D, V> {
         let coords_py = PyArrayDyn::from_owned_array(py, coords_ary);
         let data_py = PyArray1::from_vec(py, data);
 
-        dbg!(&coords_py);
-        dbg!(&data_py);
+        // dbg!(&coords_py);
+        // dbg!(&data_py);
 
         // `sparse.COO((coords, data), fill_value = ...)`
         let sparse = py.import("sparse")?;
