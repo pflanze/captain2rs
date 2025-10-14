@@ -1,0 +1,1 @@
+../.rustsec-ignore.txt
