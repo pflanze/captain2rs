@@ -1,7 +1,4 @@
-use ndarray::Array1;
 use numpy::{pyo3, pyo3::prelude::*};
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
 
 use crate::coo::Coo;
 
@@ -102,53 +99,3 @@ fn captain2rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-// def add_random_error(probs, sig=0.1):
-//     rates = -np.log(1 - probs)
-//     log_rates = np.log(rates)
-//     tmp_log_rates = np.random.normal(0, sig * log_rates, probs.shape)
-//     rnd_log_rates = log_rates + tmp_log_rates
-//     probs = 1 - np.exp(-np.exp(rnd_log_rates))
-//     probs = np.maximum(probs, np.zeros(rates.shape) + small_number)
-//     probs = np.minimum(probs, np.ones(rates.shape) - small_number)
-//     return probs
-
-/// Add random error to probabilities, similar to the Python version.
-///
-/// # Arguments
-/// * `probs` - input probabilities (ndarray of f64)
-/// * `sig` - noise scale (default 0.1)
-/// * `small_number` - clamp value to avoid exact 0 or 1
-pub fn add_random_error(probs: &Array1<f64>, sig: f64, small_number: f64) -> Array1<f64> {
-    // rates = -log(1 - probs)
-    let rates = probs.mapv(|p| -(1.0 - p).ln());
-
-    // log_rates = log(rates)
-    let log_rates = rates.mapv(|r| r.ln());
-
-    // tmp_log_rates = Normal(0, sig * log_rates)
-    let mut rng = thread_rng();
-    let tmp_log_rates = log_rates.mapv(|lr| {
-        let sigma = sig * lr.abs(); // ensure nonnegative stddev
-        let normal = Normal::new(0.0, sigma.max(1e-12)).unwrap();
-        normal.sample(&mut rng)
-    });
-
-    // rnd_log_rates = log_rates + tmp_log_rates
-    let rnd_log_rates = &log_rates + &tmp_log_rates;
-
-    // probs = 1 - exp(-exp(rnd_log_rates))
-    let mut new_probs = rnd_log_rates.mapv(|rlr| 1.0 - (-rlr.exp()).exp());
-
-    // clamp to [small_number, 1 - small_number]
-    new_probs.mapv_inplace(|p| {
-        if p < small_number {
-            small_number
-        } else if p > 1.0 - small_number {
-            1.0 - small_number
-        } else {
-            p
-        }
-    });
-
-    new_probs
-}
