@@ -85,9 +85,21 @@ pub fn dispersal_distances_threshold_test_rs<'py>(
         .to_python_sparse(py)
 }
 
+#[pyfunction]
+pub fn dispersal_distances_threshold_rs<'py>(
+    py: Python<'py>,
+    length: u32,
+    lambda_0: f64,
+    threshold: u32,
+) -> pyo3::PyResult<Bound<'py, PyAny>> {
+    dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
+}
+
 #[pymodule(name = "captain2rs")]
 fn captain2rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_test_rs, m)?)
+    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_test_rs, m)?)?;
+    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_rs, m)?)?;
+    Ok(())
 }
 
 // def add_random_error(probs, sig=0.1):
