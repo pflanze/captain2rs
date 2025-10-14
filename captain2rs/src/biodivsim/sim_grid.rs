@@ -40,12 +40,9 @@ pub fn dispersal_distances_threshold(
     default: Option<f64>,
 ) -> Coo<i64, 4, f64> {
     println!("calculating distances with threshold...");
-    println!("default = {default:?}");
 
     let mut dumping_dist = Coo::new(default.unwrap_or(0.));
     let exp_rate = 1.0 / lambda_0;
-
-    let mut count = 0;
 
     for i in 0..length {
         for j in 0..length {
@@ -63,7 +60,6 @@ pub fn dispersal_distances_threshold(
                     dumping_dist
                         .insert([i, j, n, m], (-exp_rate * dist).exp())
                         .expect("sorted");
-                    count += 1;
                 }
             }
         }
@@ -72,8 +68,6 @@ pub fn dispersal_distances_threshold(
     if test_hack {
         dumping_dist.insert_unordered([5, 9, 7, 1], -7.3456);
     }
-
-    dbg!(count);
 
     dumping_dist
 }
