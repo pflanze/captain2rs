@@ -26,7 +26,9 @@ use std::collections::HashMap;
 /// - disturbance_matrix: (n_pus, 1)
 pub struct EmpiricalGrid {
     counter: usize,
+    #[allow(unused)]
     climate_layer: Vec<f64>,
+    #[allow(unused)]
     climate_as_disturbance: f64,
 
     h: Array3<f64>,
