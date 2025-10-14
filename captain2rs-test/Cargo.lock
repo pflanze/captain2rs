@@ -62,18 +62,10 @@ name = "captain2rs"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap",
- "csv",
  "ndarray",
  "num-traits",
  "numpy",
- "ouroboros",
  "pyo3",
- "rand",
- "rand_distr",
- "rayon",
- "sprs",
- "terminal_size",
 ]
 
 [[package]]
