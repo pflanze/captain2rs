@@ -45,16 +45,14 @@ def method_broadcasting():
 
 def profiling():
     einsum = mytime("method_einsum", method_einsum)
-    tensordot = mytime("method_tensordot", method_tensordot)
-    broadcasting = mytime("method_broadcasting", method_broadcasting)
-
-    # Print results
     print(f"Einsum:        {einsum}")
-    print(f"Tensordot:     {tensordot}")
-    print(f"Broadcasting:  {broadcasting}")
-    print(einsum == tensordot)
-    print(einsum == broadcasting)
-    print(tensordot == broadcasting)
+    # tensordot = mytime("method_tensordot", method_tensordot)
+    # print(f"Tensordot:     {tensordot}")
+    # broadcasting = mytime("method_broadcasting", method_broadcasting)
+    # print(f"Broadcasting:  {broadcasting}")
+    # print(einsum == tensordot)
+    # print(einsum == broadcasting)
+    # print(tensordot == broadcasting)
     print("")
     print("")
 
