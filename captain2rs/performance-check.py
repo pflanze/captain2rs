@@ -65,6 +65,6 @@ with Profile() as profile:
          Stats(profile)
          .strip_dirs()
          .sort_stats(SortKey.TIME)
-         .print_stats()
+         .print_stats(15)
     )
     
