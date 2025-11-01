@@ -1,38 +1,38 @@
 calculating distances with threshold...
-t rust=0.697656
+t rust=0.695953
 pp rust: <COO: shape=(800, 800, 800, 800), dtype=float64, nnz=22953681, fill_value=0.0>
-t dumping_dist=0.549587
+t dumping_dist=0.549288
 pp dumping_dist: <COO: shape=(800, 800, 800, 800), dtype=float64, nnz=22953681, fill_value=0.0>
 pp einsum: <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
-t method_einsum=1.361720
+t method_einsum=1.354955
 Einsum:        <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
 
 
 pp einsum: <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
-t method_einsum=1.369252
+t method_einsum=1.359825
 Einsum:        <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
 
 
-         1078 function calls in 1.370 seconds
+         1078 function calls in 1.360 seconds
 
    Ordered by: internal time
    List reduced from 208 to 15 due to restriction <15>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-        1    0.385    0.385    0.410    0.410 _umath.py:569(_get_func_coords_data)
-        2    0.324    0.162    0.673    0.337 core.py:1284(_sort_indices)
-        1    0.194    0.194    0.194    0.194 {method 'argsort' of 'numpy.ndarray' objects}
-        3    0.167    0.056    0.167    0.056 common.py:57(linear_loc)
-        1    0.073    0.073    0.581    0.581 _umath.py:457(get_result)
-        1    0.060    0.060    0.778    0.778 _common.py:1303(_einsum_single)
+        1    0.382    0.382    0.407    0.407 _umath.py:569(_get_func_coords_data)
+        2    0.322    0.161    0.667    0.334 core.py:1284(_sort_indices)
+        1    0.190    0.190    0.190    0.190 {method 'argsort' of 'numpy.ndarray' objects}
+        3    0.166    0.055    0.166    0.055 common.py:57(linear_loc)
+        1    0.072    0.072    0.577    0.577 _umath.py:457(get_result)
+        1    0.062    0.062    0.774    0.774 _common.py:1303(_einsum_single)
         3    0.053    0.018    0.053    0.018 function_base.py:1324(diff)
         1    0.052    0.052    0.140    0.140 core.py:1309(_sum_duplicates)
         3    0.026    0.009    0.026    0.009 _utils.py:409(equivalent)
         1    0.013    0.013    0.013    0.013 {method 'reduceat' of 'numpy.ufunc' objects}
         5    0.006    0.001    0.006    0.001 {method 'reduce' of 'numpy.ufunc' objects}
-        2    0.003    0.001    0.817    0.408 core.py:197(__init__)
-        1    0.003    0.003    0.586    0.586 _umath.py:13(elemwise)
-        1    0.003    0.003    1.369    1.369 performance-check.py:37(method_einsum)
+        1    0.003    0.003    1.360    1.360 performance-check.py:37(method_einsum)
+        2    0.003    0.001    0.810    0.405 core.py:197(__init__)
+        1    0.003    0.003    0.582    0.582 _umath.py:13(elemwise)
         1    0.003    0.003    0.003    0.003 {method 'nonzero' of 'numpy.ndarray' objects}
 
 
