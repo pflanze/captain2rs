@@ -1,38 +1,62 @@
 calculating distances with threshold...
-t rust=0.693617
+t rust=0.706142
 pp rust: <COO: shape=(800, 800, 800, 800), dtype=float64, nnz=22953681, fill_value=0.0>
-t dumping_dist=0.550437
+t dumping_dist=0.551686
 pp dumping_dist: <COO: shape=(800, 800, 800, 800), dtype=float64, nnz=22953681, fill_value=0.0>
 pp einsum: <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
-t method_einsum=1.361324
-Einsum:        <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
+t method_einsum=1.363890
+Einsum:        [[ 4.65119455  5.75817109  6.91592702 ...  7.09219608  5.76173304
+   4.34106469]
+ [ 5.92077988  7.34198912  9.07786999 ...  8.36941     6.77701452
+   5.15714916]
+ [ 7.09516612  8.72232711 10.61879295 ...  9.56161091  7.8227384
+   5.95679123]
+ ...
+ [ 7.36658678  8.88168695 10.37702878 ...  7.62532854  6.41508321
+   4.25501455]
+ [ 6.2943687   7.67836143  8.96272688 ...  6.6723204   5.44416528
+   3.93316279]
+ [ 5.49564783  6.77923172  7.62260982 ...  5.27333263  4.33241021
+   3.34854296]]
 
 
 pp einsum: <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
-t method_einsum=1.359813
-Einsum:        <COO: shape=(800, 800), dtype=float64, nnz=640000, fill_value=0.0>
+t method_einsum=1.372835
+Einsum:        [[ 4.65119455  5.75817109  6.91592702 ...  7.09219608  5.76173304
+   4.34106469]
+ [ 5.92077988  7.34198912  9.07786999 ...  8.36941     6.77701452
+   5.15714916]
+ [ 7.09516612  8.72232711 10.61879295 ...  9.56161091  7.8227384
+   5.95679123]
+ ...
+ [ 7.36658678  8.88168695 10.37702878 ...  7.62532854  6.41508321
+   4.25501455]
+ [ 6.2943687   7.67836143  8.96272688 ...  6.6723204   5.44416528
+   3.93316279]
+ [ 5.49564783  6.77923172  7.62260982 ...  5.27333263  4.33241021
+   3.34854296]]
 
 
-         1078 function calls in 1.360 seconds
+         1766 function calls (1718 primitive calls) in 1.374 seconds
 
    Ordered by: internal time
-   List reduced from 208 to 15 due to restriction <15>
+   List reduced from 252 to 15 due to restriction <15>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-        1    0.381    0.381    0.406    0.406 _umath.py:569(_get_func_coords_data)
-        2    0.323    0.161    0.668    0.334 core.py:1284(_sort_indices)
-        1    0.188    0.188    0.188    0.188 {method 'argsort' of 'numpy.ndarray' objects}
-        3    0.169    0.056    0.169    0.056 common.py:57(linear_loc)
-        1    0.072    0.072    0.579    0.579 _umath.py:457(get_result)
-        1    0.062    0.062    0.771    0.771 _common.py:1303(_einsum_single)
-        3    0.053    0.018    0.053    0.018 function_base.py:1324(diff)
-        1    0.052    0.052    0.139    0.139 core.py:1309(_sum_duplicates)
+        1    0.384    0.384    0.409    0.409 _umath.py:569(_get_func_coords_data)
+        2    0.326    0.163    0.676    0.338 core.py:1284(_sort_indices)
+        1    0.196    0.196    0.196    0.196 {method 'argsort' of 'numpy.ndarray' objects}
+        3    0.167    0.056    0.167    0.056 common.py:57(linear_loc)
+        1    0.073    0.073    0.581    0.581 _umath.py:457(get_result)
+        1    0.061    0.061    0.782    0.782 _common.py:1303(_einsum_single)
+        3    0.052    0.017    0.052    0.017 function_base.py:1324(diff)
+        1    0.052    0.052    0.140    0.140 core.py:1309(_sum_duplicates)
         3    0.026    0.009    0.026    0.009 _utils.py:409(equivalent)
-        1    0.013    0.013    0.013    0.013 {method 'reduceat' of 'numpy.ufunc' objects}
-        5    0.006    0.001    0.006    0.001 {method 'reduce' of 'numpy.ufunc' objects}
-        2    0.003    0.001    0.810    0.405 core.py:197(__init__)
-        1    0.003    0.003    0.584    0.584 _umath.py:13(elemwise)
-        1    0.003    0.003    1.360    1.360 performance-check.py:37(method_einsum)
+        1    0.012    0.012    0.012    0.012 {method 'reduceat' of 'numpy.ufunc' objects}
+        7    0.006    0.001    0.006    0.001 {method 'reduce' of 'numpy.ufunc' objects}
+        2    0.003    0.001    0.819    0.410 core.py:197(__init__)
+        1    0.003    0.003    0.585    0.585 _umath.py:13(elemwise)
+        1    0.003    0.003    1.373    1.373 performance-check.py:37(method_einsum)
         1    0.003    0.003    0.003    0.003 {method 'nonzero' of 'numpy.ndarray' objects}
 
 
