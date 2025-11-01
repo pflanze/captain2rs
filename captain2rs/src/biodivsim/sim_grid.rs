@@ -1,7 +1,6 @@
-// use numpy::{pyo3, pyo3::prelude::*};
-use numpy::{pyo3, pyo3::prelude::*, PyReadonlyArray};
-use ndarray::ArrayView2;
 use crate::coo::Coo;
+use ndarray::ArrayView2;
+use numpy::{pyo3, pyo3::prelude::*, PyReadonlyArray};
 
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
@@ -57,7 +56,7 @@ pub fn dispersal_distances_threshold(
                     let dist = (dx + dy).sqrt();
                     dumping_dist
                         .insert([i, j, n, m], (-exp_rate * dist).exp())
-                        .expect("sorted");
+                        .expect("inserts to happen in sorted order");
                 }
             }
         }
@@ -93,12 +92,6 @@ pub fn dispersal_distances_threshold_rs<'py>(
     dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
 }
 
-//-----
-
-// In your module file (e.g., dispersal.rs)
-
-// --- Core Logic Function ---
-
 /// Compute dispersal distances using geographic coordinates with a threshold.
 ///
 /// # Arguments
@@ -119,9 +112,7 @@ fn dispersal_distances_coord(
 ) -> Coo<i64, 4, f64> {
     println!("calculating distances with coordinate threshold...");
 
-    // Initialize the sparse Coo matrix
-    // We assume the maximum length for indexing fits within i64 as per the Coo definition.
-    let mut dumping_dist = Coo::new(0.0); 
+    let mut dumping_dist = Coo::new(0.0);
     let exp_rate = 1.0 / lambda_0;
 
     // The input arrays must have dimensions (length, length)
@@ -154,9 +145,9 @@ fn dispersal_distances_coord(
                         dumping_dist
                             .insert(
                                 [i as i64, j as i64, n as i64, m as i64],
-                                (-exp_rate * dist).exp()
+                                (-exp_rate * dist).exp(),
                             )
-                            .expect("sorted insertion failed");
+                            .expect("inserts to happen in sorted order");
                     }
                 }
             }
@@ -166,22 +157,7 @@ fn dispersal_distances_coord(
     dumping_dist
 }
 
-
-// // --- PyO3 Wrapper Function ---
-
-// #[pyfunction]
-// pub fn dispersal_distances_threshold_rs<'py>(
-//     py: Python<'py>,
-//     length: u32,
-//     lambda_0: f64,
-//     threshold: u32,
-// ) -> pyo3::PyResult<Bound<'py, PyAny>> {
-//     dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
-// }
-
-
-
-
+// --- PyO3 Wrapper Function ---
 #[pyfunction]
 pub fn dispersal_distances_coord_rs<'py>(
     py: Python<'py>,
@@ -206,16 +182,6 @@ pub fn dispersal_distances_coord_rs<'py>(
     result_coo.to_python_sparse(py)
 }
 
-//
-//
-
-
-
-
-
-
-
-
 //-------
 
 #[pymodule(name = "captain2rs")]
@@ -225,6 +191,3 @@ fn captain2rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(dispersal_distances_coord_rs, m)?)?;
     Ok(())
 }
-
-
-
