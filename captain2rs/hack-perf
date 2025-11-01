@@ -1,0 +1,6 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+maturin develop --release && ./performance-check.py > hack-perf.out
+com -m hack-perf.out hack-perf.out
