@@ -35,7 +35,7 @@ dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_r
 B = pp("dumping_dist", mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3)))  # something
 
 def method_einsum():
-    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B)) # .todense()
+    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B)).todense()
 
 def method_tensordot():
     return np.tensordot(A, B, axes=([0, 1], [0, 1]))
