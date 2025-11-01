@@ -69,29 +69,6 @@ pub fn dispersal_distances_threshold(
     dumping_dist
 }
 
-#[pyfunction]
-pub fn dispersal_distances_threshold_test_rs<'py>(
-    py: Python<'py>,
-    length: u32,
-    lambda_0: f64,
-    threshold: u32,
-    test_hack: bool,
-    default: Option<f64>,
-) -> pyo3::PyResult<Bound<'py, PyAny>> {
-    dispersal_distances_threshold(length, lambda_0, threshold, test_hack, default)
-        .to_python_sparse(py)
-}
-
-#[pyfunction]
-pub fn dispersal_distances_threshold_rs<'py>(
-    py: Python<'py>,
-    length: u32,
-    lambda_0: f64,
-    threshold: u32,
-) -> pyo3::PyResult<Bound<'py, PyAny>> {
-    dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
-}
-
 /// Compute dispersal distances using geographic coordinates with a threshold.
 ///
 /// # Arguments
@@ -157,7 +134,31 @@ fn dispersal_distances_coord(
     dumping_dist
 }
 
-// --- PyO3 Wrapper Function ---
+// --- PyO3 wrapper functions ---
+
+#[pyfunction]
+pub fn dispersal_distances_threshold_test_rs<'py>(
+    py: Python<'py>,
+    length: u32,
+    lambda_0: f64,
+    threshold: u32,
+    test_hack: bool,
+    default: Option<f64>,
+) -> pyo3::PyResult<Bound<'py, PyAny>> {
+    dispersal_distances_threshold(length, lambda_0, threshold, test_hack, default)
+        .to_python_sparse(py)
+}
+
+#[pyfunction]
+pub fn dispersal_distances_threshold_rs<'py>(
+    py: Python<'py>,
+    length: u32,
+    lambda_0: f64,
+    threshold: u32,
+) -> pyo3::PyResult<Bound<'py, PyAny>> {
+    dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
+}
+
 #[pyfunction]
 pub fn dispersal_distances_coord_rs<'py>(
     py: Python<'py>,
@@ -182,8 +183,7 @@ pub fn dispersal_distances_coord_rs<'py>(
     result_coo.to_python_sparse(py)
 }
 
-//-------
-
+/// Export to Python
 #[pymodule(name = "captain2rs")]
 fn captain2rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(dispersal_distances_threshold_test_rs, m)?)?;
