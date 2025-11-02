@@ -1,6 +1,14 @@
 use crate::coo::Coo;
-use ndarray::ArrayView2;
-use numpy::{pyo3, pyo3::prelude::*, PyReadonlyArray};
+use ndarray::{Array2, ArrayView2};
+use numpy::{
+    pyo3::{self, prelude::*},
+    PyArray2, PyReadonlyArray,
+};
+use pyo3::pyclass;
+
+fn square_i32(x: i32) -> i32 {
+    x * x
+}
 
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
@@ -51,7 +59,7 @@ pub fn dispersal_distances_threshold(
 
             for n in n_min..n_max {
                 for m in m_min..m_max {
-                    let dx = (i as f64 - n as f64).powi(2);
+                    let dx = (i as f64 - n as f64).powi(2); // XX why not in i64!
                     let dy = (j as f64 - m as f64).powi(2);
                     let dist = (dx + dy).sqrt();
                     dumping_dist
@@ -67,6 +75,83 @@ pub fn dispersal_distances_threshold(
     }
 
     dumping_dist
+}
+
+#[pyclass(frozen)]
+pub struct DispersalDistancesThreshold {
+    pub length: u32,
+    pub threshold: u32,
+    pub neg_exp_rate: f64,
+}
+
+#[pymethods]
+impl DispersalDistancesThreshold {
+    #[new]
+    fn new(length: u32, lambda_0: f64, threshold: u32) -> Self {
+        Self {
+            length,
+            threshold,
+            neg_exp_rate: -1.0 / lambda_0,
+        }
+    }
+
+    fn precise_at(&self, i: u32, j: u32, n: u32, m: u32) -> f64 {
+        let dx = square_i32(i as i32 - n as i32);
+        let dy = square_i32(j as i32 - m as i32);
+        let dist = f64::sqrt((dx + dy) as f64);
+        (self.neg_exp_rate * dist).exp()
+    }
+}
+
+/// Variant that includes *some* example calculation
+fn dispersal_distances_threshold_eval_1(
+    // Matrix A
+    a: ArrayView2<f64>,
+    // Parameters for 4D-tensor B
+    // length: u32,
+    // lambda_0: f64,
+    // threshold: u32,
+    // let b = DispersalDistancesThreshold::new(length, lambda_0, threshold);
+    b: &DispersalDistancesThreshold,
+) -> Array2<f64> {
+    let shape = a.dim();
+    let mut c = Array2::zeros(shape); // XX use numpy directly?
+
+    // for p in 0..shape.0 {
+    //     for q in 0..shape.1 {
+    //         nm += a[(p, q)] * b.precise_at(p, q);
+    //     }
+    // }
+    let DispersalDistancesThreshold {
+        length,
+        threshold,
+        neg_exp_rate: _,
+    } = *b;
+    let dim_i = shape.0 as u32;
+    let dim_j = shape.1 as u32;
+    let mut nnz = 0;
+    for i in 0..dim_i {
+        // XXX wrong?
+        for j in 0..dim_j {
+            let n_min = if i >= threshold { i - threshold } else { 0 };
+            let n_max = u32::min(length, i + threshold);
+            let m_min = if j >= threshold { j - threshold } else { 0 };
+            let m_max = u32::min(length, j + threshold);
+
+            for n in n_min..n_max {
+                for m in m_min..m_max {
+                    c[(n as usize, m as usize)] += a[(i as usize, j as usize)]
+                        * b.precise_at(i, j, n, m)
+                            // XX hack: user space calculation inlined
+                            .powf(1. / 2.3);
+                    nnz += 1;
+                }
+            }
+        }
+    }
+    dbg!(nnz);
+
+    c
 }
 
 /// Compute dispersal distances using geographic coordinates with a threshold.
@@ -169,7 +254,7 @@ pub fn dispersal_distances_coord_rs<'py>(
     lat: PyReadonlyArray<'py, f64, ndarray::Dim<[usize; 2]>>,
     lon: PyReadonlyArray<'py, f64, ndarray::Dim<[usize; 2]>>,
     threshold: f64,
-) -> pyo3::PyResult<Bound<'py, PyAny>> {
+) -> PyResult<Bound<'py, PyAny>> {
     // 1. Convert PyReadonlyArray to ArrayView2 for use in the core Rust function
     let lat_view = lat.as_array();
     let lon_view = lon.as_array();
@@ -183,11 +268,28 @@ pub fn dispersal_distances_coord_rs<'py>(
     result_coo.to_python_sparse(py)
 }
 
+#[pyfunction]
+fn dispersal_distances_threshold_eval_1_rs<'py>(
+    py: Python<'py>,
+    a: PyReadonlyArray<'py, f64, ndarray::Dim<[usize; 2]>>,
+    b: &Bound<'_, DispersalDistancesThreshold>,
+) -> Bound<'py, PyArray2<f64>> {
+    let a_view = a.as_array();
+    let res: Array2<f64> = dispersal_distances_threshold_eval_1(a_view, &b.borrow());
+    PyArray2::from_owned_array(py, res)
+}
+
 /// Export to Python
-#[pymodule(name = "captain2rs")]
-fn captain2rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_test_rs, m)?)?;
-    m.add_function(wrap_pyfunction!(dispersal_distances_threshold_rs, m)?)?;
-    m.add_function(wrap_pyfunction!(dispersal_distances_coord_rs, m)?)?;
-    Ok(())
+#[pymodule]
+mod captain2rs {
+    #[pymodule_export]
+    use super::dispersal_distances_coord_rs;
+    #[pymodule_export]
+    use super::dispersal_distances_threshold_eval_1_rs;
+    #[pymodule_export]
+    use super::dispersal_distances_threshold_rs;
+    #[pymodule_export]
+    use super::dispersal_distances_threshold_test_rs;
+    #[pymodule_export]
+    use super::DispersalDistancesThreshold;
 }

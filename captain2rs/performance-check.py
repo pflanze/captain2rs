@@ -8,7 +8,8 @@ import timeit
 import numpy as np
 import sparse
 
-from captain2rs import dispersal_distances_threshold_rs
+from captain2rs import (dispersal_distances_threshold_rs, dispersal_distances_threshold_eval_1_rs,
+                        DispersalDistancesThreshold)
 
 
 def mytime(nam, proc):
@@ -35,7 +36,11 @@ dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_r
 B = pp("dumping_dist", mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3)))  # something
 
 def method_einsum():
-    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B)).todense()
+    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B).todense())
+
+def method_inlined():
+    ddt = DispersalDistancesThreshold(d, 2.3, 3);
+    return pp("inlined", dispersal_distances_threshold_eval_1_rs(A, ddt))
 
 def method_tensordot():
     return np.tensordot(A, B, axes=([0, 1], [0, 1]))
@@ -45,7 +50,9 @@ def method_broadcasting():
 
 def profiling():
     einsum = mytime("method_einsum", method_einsum)
-    print(f"Einsum:        {einsum}")
+    inlined = mytime("method_inlined", method_inlined)
+    print(einsum / inlined)
+    print(einsum == inlined)
     # tensordot = mytime("method_tensordot", method_tensordot)
     # print(f"Tensordot:     {tensordot}")
     # broadcasting = mytime("method_broadcasting", method_broadcasting)
