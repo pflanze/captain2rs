@@ -139,8 +139,8 @@ impl DispersalDistancesThreshold {
             for j in 0..dim_j {
                 for n in bounded_range_around(i, length, threshold) {
                     for m in bounded_range_around(j, length, threshold) {
-                        c[(n as usize, m as usize)] +=
-                            a[(i as usize, j as usize)] * dot_transform(self.precise_at(i, j, n, m))
+                        c[(i as usize, j as usize)] +=
+                            a[(n as usize, m as usize)] * dot_transform(self.precise_at(n, m, i, j))
                     }
                 }
             }
