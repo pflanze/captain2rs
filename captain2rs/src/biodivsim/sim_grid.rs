@@ -172,26 +172,25 @@ fn dispersal_distances_coord(
     lon: ArrayView2<Float>,
     threshold: Float,
 ) -> Coo<i64, 4, Float> {
+    assert_eq!(lat.shape(), [length as usize, length as usize]);
+    assert_eq!(lon.shape(), [length as usize, length as usize]);
+
     println!("calculating distances with coordinate threshold...");
 
     let mut dumping_dist = Coo::new(0.0);
     let exp_rate = 1.0 / lambda_0;
 
-    // The input arrays must have dimensions (length, length)
-    assert_eq!(lat.shape(), &[length as usize, length as usize]);
-    assert_eq!(lon.shape(), &[length as usize, length as usize]);
-
     let len_usize = length as usize;
 
     for i in 0..len_usize {
         for j in 0..len_usize {
-            let lat_ij = *lat.get((i, j)).expect("i, j index out of bounds");
-            let lon_ij = *lon.get((i, j)).expect("i, j index out of bounds");
+            let lat_ij = lat[(i, j)];
+            let lon_ij = lon[(i, j)];
 
             for n in 0..len_usize {
                 for m in 0..len_usize {
-                    let lat_nm = *lat.get((n, m)).expect("n, m index out of bounds");
-                    let lon_nm = *lon.get((n, m)).expect("n, m index out of bounds");
+                    let lat_nm = lat[(n, m)];
+                    let lon_nm = lon[(n, m)];
 
                     // Python logic: if abs(lat[i,j] - lat[n,m]) <= threshold and abs(lon[i,j] - lon[n,m]) <= threshold:
                     let lat_diff = (lat_ij - lat_nm).abs();
