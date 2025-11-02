@@ -131,8 +131,8 @@ fn dispersal_distances_threshold_eval_1(
     } = *b;
     let dim_i = shape.0 as u32;
     let dim_j = shape.1 as u32;
-    let mut nnz = 0;
-    for i in 0..dim_i {
+
+    (0..dim_i).for_each(|i| {
         // XXX wrong?
         for j in 0..dim_j {
             let n_min = if i >= threshold { i - threshold } else { 0 };
@@ -146,12 +146,10 @@ fn dispersal_distances_threshold_eval_1(
                         * b.precise_at(i, j, n, m)
                             // XX hack: user space calculation inlined
                             .powf(1. / 2.3);
-                    nnz += 1;
                 }
             }
         }
-    }
-    dbg!(nnz);
+    });
 
     c
 }
