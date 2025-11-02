@@ -26,17 +26,17 @@ def pp(nam, val):
     return val
 
 
-np.random.seed(42)
-
+rng = np.random.default_rng(42)
+   
 d = 800
-A = np.random.rand(d, d)
+A = rng.random((d, d), dtype=np.float32)
 
 #B = np.random.rand(100, 100, 400, 400)
 dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_rs(d, 2.3, 3)))
 B = pp("dumping_dist", mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3)))  # something
 
 def method_einsum():
-    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B).todense())
+    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B, dtype=np.float32).todense())
 
 def method_inlined():
     ddt = DispersalDistancesThreshold(d, 2.3, 3);

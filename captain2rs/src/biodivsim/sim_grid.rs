@@ -10,6 +10,8 @@ fn square_i32(x: i32) -> i32 {
     x * x
 }
 
+type Float = f32;
+
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
 //                                 lambda_0: float,
@@ -39,11 +41,11 @@ fn square_i32(x: i32) -> i32 {
 /// A 4D array of shape (length, length, length, length)
 pub fn dispersal_distances_threshold(
     length: u32,
-    lambda_0: f64,
+    lambda_0: Float,
     threshold: u32,
     test_hack: bool,
-    default: Option<f64>,
-) -> Coo<i64, 4, f64> {
+    default: Option<Float>,
+) -> Coo<i64, 4, Float> {
     println!("calculating distances with threshold...");
 
     let mut dumping_dist = Coo::new(default.unwrap_or(0.));
@@ -59,8 +61,8 @@ pub fn dispersal_distances_threshold(
 
             for n in n_min..n_max {
                 for m in m_min..m_max {
-                    let dx = (i as f64 - n as f64).powi(2); // XX why not in i64!
-                    let dy = (j as f64 - m as f64).powi(2);
+                    let dx = (i as Float - n as Float).powi(2); // XX why not in i64!
+                    let dy = (j as Float - m as Float).powi(2);
                     let dist = (dx + dy).sqrt();
                     dumping_dist
                         .insert([i, j, n, m], (-exp_rate * dist).exp())
@@ -81,13 +83,13 @@ pub fn dispersal_distances_threshold(
 pub struct DispersalDistancesThreshold {
     pub length: u32,
     pub threshold: u32,
-    pub neg_exp_rate: f64,
+    pub neg_exp_rate: Float,
 }
 
 #[pymethods]
 impl DispersalDistancesThreshold {
     #[new]
-    fn new(length: u32, lambda_0: f64, threshold: u32) -> Self {
+    fn new(length: u32, lambda_0: Float, threshold: u32) -> Self {
         Self {
             length,
             threshold,
@@ -95,10 +97,10 @@ impl DispersalDistancesThreshold {
         }
     }
 
-    fn precise_at(&self, i: u32, j: u32, n: u32, m: u32) -> f64 {
+    fn precise_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
         let dx = square_i32(i as i32 - n as i32);
         let dy = square_i32(j as i32 - m as i32);
-        let dist = f64::sqrt((dx + dy) as f64);
+        let dist = Float::sqrt((dx + dy) as Float);
         (self.neg_exp_rate * dist).exp()
     }
 }
@@ -106,14 +108,14 @@ impl DispersalDistancesThreshold {
 /// Variant that includes *some* example calculation
 fn dispersal_distances_threshold_eval_1(
     // Matrix A
-    a: ArrayView2<f64>,
+    a: ArrayView2<Float>,
     // Parameters for 4D-tensor B
     // length: u32,
-    // lambda_0: f64,
+    // lambda_0: Float,
     // threshold: u32,
     // let b = DispersalDistancesThreshold::new(length, lambda_0, threshold);
     b: &DispersalDistancesThreshold,
-) -> Array2<f64> {
+) -> Array2<Float> {
     let shape = a.dim();
     let mut c = Array2::zeros(shape); // XX use numpy directly?
 
@@ -167,11 +169,11 @@ fn dispersal_distances_threshold_eval_1(
 /// A 4D Coo sparse array of shape (length, length, length, length)
 fn dispersal_distances_coord(
     length: u32,
-    lambda_0: f64,
-    lat: ArrayView2<f64>,
-    lon: ArrayView2<f64>,
-    threshold: f64,
-) -> Coo<i64, 4, f64> {
+    lambda_0: Float,
+    lat: ArrayView2<Float>,
+    lon: ArrayView2<Float>,
+    threshold: Float,
+) -> Coo<i64, 4, Float> {
     println!("calculating distances with coordinate threshold...");
 
     let mut dumping_dist = Coo::new(0.0);
@@ -225,10 +227,10 @@ fn dispersal_distances_coord(
 pub fn dispersal_distances_threshold_test_rs<'py>(
     py: Python<'py>,
     length: u32,
-    lambda_0: f64,
+    lambda_0: Float,
     threshold: u32,
     test_hack: bool,
-    default: Option<f64>,
+    default: Option<Float>,
 ) -> pyo3::PyResult<Bound<'py, PyAny>> {
     dispersal_distances_threshold(length, lambda_0, threshold, test_hack, default)
         .to_python_sparse(py)
@@ -238,7 +240,7 @@ pub fn dispersal_distances_threshold_test_rs<'py>(
 pub fn dispersal_distances_threshold_rs<'py>(
     py: Python<'py>,
     length: u32,
-    lambda_0: f64,
+    lambda_0: Float,
     threshold: u32,
 ) -> pyo3::PyResult<Bound<'py, PyAny>> {
     dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
@@ -248,12 +250,12 @@ pub fn dispersal_distances_threshold_rs<'py>(
 pub fn dispersal_distances_coord_rs<'py>(
     py: Python<'py>,
     length: u32,
-    lambda_0: f64,
+    lambda_0: Float,
     // Use PyReadonlyArray to accept a NumPy array from Python safely
-    // ArrayView2<f64> means a 2D array of f64 elements
-    lat: PyReadonlyArray<'py, f64, ndarray::Dim<[usize; 2]>>,
-    lon: PyReadonlyArray<'py, f64, ndarray::Dim<[usize; 2]>>,
-    threshold: f64,
+    // ArrayView2<Float> means a 2D array of Float elements
+    lat: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
+    lon: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
+    threshold: Float,
 ) -> PyResult<Bound<'py, PyAny>> {
     // 1. Convert PyReadonlyArray to ArrayView2 for use in the core Rust function
     let lat_view = lat.as_array();
@@ -271,11 +273,11 @@ pub fn dispersal_distances_coord_rs<'py>(
 #[pyfunction]
 fn dispersal_distances_threshold_eval_1_rs<'py>(
     py: Python<'py>,
-    a: PyReadonlyArray<'py, f64, ndarray::Dim<[usize; 2]>>,
+    a: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
     b: &Bound<'_, DispersalDistancesThreshold>,
-) -> Bound<'py, PyArray2<f64>> {
+) -> Bound<'py, PyArray2<Float>> {
     let a_view = a.as_array();
-    let res: Array2<f64> = dispersal_distances_threshold_eval_1(a_view, &b.borrow());
+    let res: Array2<Float> = dispersal_distances_threshold_eval_1(a_view, &b.borrow());
     PyArray2::from_owned_array(py, res)
 }
 
