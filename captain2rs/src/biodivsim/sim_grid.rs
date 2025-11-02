@@ -105,53 +105,49 @@ impl DispersalDistancesThreshold {
     }
 }
 
-/// Variant that includes *some* example calculation
-fn dispersal_distances_threshold_eval_1(
-    // Matrix A
-    a: ArrayView2<Float>,
-    // Parameters for 4D-tensor B
-    // length: u32,
-    // lambda_0: Float,
-    // threshold: u32,
-    // let b = DispersalDistancesThreshold::new(length, lambda_0, threshold);
-    b: &DispersalDistancesThreshold,
-) -> Array2<Float> {
-    let shape = a.dim();
-    let mut c = Array2::zeros(shape); // XX use numpy directly?
+impl DispersalDistancesThreshold {
+    fn apply_with_dot_transform(
+        &self,
+        dot_transform: impl Fn(Float) -> Float,
+        a: ArrayView2<Float>,
+    ) -> Array2<Float> {
+        let DispersalDistancesThreshold {
+            length,
+            threshold,
+            neg_exp_rate: _,
+        } = *self;
 
-    // for p in 0..shape.0 {
-    //     for q in 0..shape.1 {
-    //         nm += a[(p, q)] * b.precise_at(p, q);
-    //     }
-    // }
-    let DispersalDistancesThreshold {
-        length,
-        threshold,
-        neg_exp_rate: _,
-    } = *b;
-    let dim_i = shape.0 as u32;
-    let dim_j = shape.1 as u32;
+        let shape = a.dim();
+        let mut c = Array2::zeros(shape); // XX use numpy directly?
 
-    (0..dim_i).for_each(|i| {
-        // XXX wrong?
-        for j in 0..dim_j {
-            let n_min = if i >= threshold { i - threshold } else { 0 };
-            let n_max = u32::min(length, i + threshold);
-            let m_min = if j >= threshold { j - threshold } else { 0 };
-            let m_max = u32::min(length, j + threshold);
+        // for p in 0..shape.0 {
+        //     for q in 0..shape.1 {
+        //         nm += a[(p, q)] * b.precise_at(p, q);
+        //     }
+        // }
 
-            for n in n_min..n_max {
-                for m in m_min..m_max {
-                    c[(n as usize, m as usize)] += a[(i as usize, j as usize)]
-                        * b.precise_at(i, j, n, m)
-                            // XX hack: user space calculation inlined
-                            .powf(1. / 2.3);
+        let dim_i = shape.0 as u32;
+        let dim_j = shape.1 as u32;
+
+        (0..dim_i).for_each(|i| {
+            // XXX wrong?
+            for j in 0..dim_j {
+                let n_min = if i >= threshold { i - threshold } else { 0 };
+                let n_max = u32::min(length, i + threshold);
+                let m_min = if j >= threshold { j - threshold } else { 0 };
+                let m_max = u32::min(length, j + threshold);
+
+                for n in n_min..n_max {
+                    for m in m_min..m_max {
+                        c[(n as usize, m as usize)] +=
+                            a[(i as usize, j as usize)] * dot_transform(self.precise_at(i, j, n, m))
+                    }
                 }
             }
-        }
-    });
+        });
 
-    c
+        c
+    }
 }
 
 /// Compute dispersal distances using geographic coordinates with a threshold.
@@ -274,7 +270,9 @@ fn dispersal_distances_threshold_eval_1_rs<'py>(
     b: &Bound<'_, DispersalDistancesThreshold>,
 ) -> Bound<'py, PyArray2<Float>> {
     let a_view = a.as_array();
-    let res: Array2<Float> = dispersal_distances_threshold_eval_1(a_view, &b.borrow());
+    let res: Array2<Float> = b
+        .borrow()
+        .apply_with_dot_transform(|x| x.powf(1. / 2.3), a_view);
     PyArray2::from_owned_array(py, res)
 }
 
