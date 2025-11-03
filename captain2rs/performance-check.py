@@ -27,12 +27,11 @@ def pp(nam, val):
 
 
 rng = np.random.default_rng(42)
-   
-d = 800
-A = rng.random((d, d), dtype=np.float32)
+
+A = rng.random((800, 800), dtype=np.float32)
 
 #B = np.random.rand(100, 100, 400, 400)
-dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_rs(d, 2.3, 3)))
+dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_rs(A.shape[0], 2.3, 3)))
 B = pp("dumping_dist", mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3)))  # something
 
 def method_einsum():
