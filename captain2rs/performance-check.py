@@ -39,7 +39,7 @@ def method_einsum():
     return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B, dtype=np.float32).todense())
 
 def method_inlined():
-    ddt = DispersalDistancesThreshold(d, 2.3, 3);
+    ddt = DispersalDistancesThreshold(2.3, 3);
     return pp("inlined", dispersal_distances_threshold_eval_1_rs(A, ddt))
 
 def method_tensordot():

@@ -86,27 +86,58 @@ pub fn dispersal_distances_threshold(
 
 #[pyclass(frozen)]
 pub struct DispersalDistancesThreshold {
-    pub length: u32,
     pub threshold: u32,
     pub neg_exp_rate: Float,
+    pub cache: Array2<Float>,
+}
+
+fn dist_value(neg_exp_rate: Float, dx: i32, dy: i32) -> Float {
+    (neg_exp_rate * Float::sqrt((square_i32(dx) + square_i32(dy)) as Float)).exp()
 }
 
 #[pymethods]
 impl DispersalDistancesThreshold {
     #[new]
-    fn new(length: u32, lambda_0: Float, threshold: u32) -> Self {
+    fn new(lambda_0: Float, threshold: u32) -> Self {
+        let neg_exp_rate = -1.0 / lambda_0;
+        let mut cache = Array2::zeros((threshold as usize + 1, threshold as usize + 1));
+        for i in 0..=threshold {
+            for j in 0..=threshold {
+                cache[(i as usize, j as usize)] = dist_value(neg_exp_rate, i as i32, j as i32);
+            }
+        }
+
         Self {
-            length,
             threshold,
-            neg_exp_rate: -1.0 / lambda_0,
+            neg_exp_rate,
+            cache,
         }
     }
 
     fn precise_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
-        let dx = square_i32(i as i32 - n as i32);
-        let dy = square_i32(j as i32 - m as i32);
-        let dist = Float::sqrt((dx + dy) as Float);
-        (self.neg_exp_rate * dist).exp()
+        dist_value(self.neg_exp_rate, i as i32 - n as i32, j as i32 - m as i32)
+    }
+
+    /// Only valid in range of differences as per `self.length`,
+    /// panics otherwise
+    #[inline]
+    fn cached_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
+        self.cache[(
+            (i as i32 - n as i32).abs() as usize,
+            (j as i32 - m as i32).abs() as usize,
+        )]
+    }
+
+    fn asserting_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
+        let val1 = self.precise_at(i, j, n, m);
+        let val2 = self.cached_at(i, j, n, m);
+        assert_eq!(val1, val2);
+        val2
+    }
+
+    #[inline]
+    fn at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
+        self.cached_at(i, j, n, m)
     }
 }
 
@@ -117,9 +148,9 @@ impl DispersalDistancesThreshold {
         a: ArrayView2<Float>,
     ) -> Array2<Float> {
         let DispersalDistancesThreshold {
-            length,
             threshold,
             neg_exp_rate: _,
+            cache: _,
         } = *self;
 
         let shape = a.dim();
@@ -127,7 +158,7 @@ impl DispersalDistancesThreshold {
 
         // for p in 0..shape.0 {
         //     for q in 0..shape.1 {
-        //         nm += a[(p, q)] * b.precise_at(p, q);
+        //         nm += a[(p, q)] * b.at(p, q);
         //     }
         // }
 
@@ -137,10 +168,10 @@ impl DispersalDistancesThreshold {
         (0..dim_i).for_each(|i| {
             // XXX wrong?
             for j in 0..dim_j {
-                for n in bounded_range_around(i, length, threshold) {
-                    for m in bounded_range_around(j, length, threshold) {
+                for n in bounded_range_around(i, dim_i, threshold) {
+                    for m in bounded_range_around(j, dim_j, threshold) {
                         c[(i as usize, j as usize)] +=
-                            a[(n as usize, m as usize)] * dot_transform(self.precise_at(n, m, i, j))
+                            a[(n as usize, m as usize)] * dot_transform(self.at(n, m, i, j))
                     }
                 }
             }
