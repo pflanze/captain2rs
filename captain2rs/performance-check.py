@@ -8,7 +8,7 @@ import timeit
 import numpy as np
 import sparse
 
-from captain2rs import (dispersal_distances_threshold_rs, dispersal_distances_threshold_eval_1_rs,
+from captain2rs import (dispersal_distances_threshold_rs,
                         DispersalDistancesThreshold)
 
 
@@ -49,8 +49,8 @@ def method_einsum():
     return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B, dtype=np.float32).todense())
 
 def method_inlined():
-    ddt = DispersalDistancesThreshold(2.3, 3);
-    return pp("inlined", dispersal_distances_threshold_eval_1_rs(A, ddt))
+    ddt = DispersalDistancesThreshold(2.3, 3).map(lambda x: x ** (1 / 2.3));
+    return pp("inlined", ddt.apply(A))
 
 def method_tensordot():
     return np.tensordot(A, B, axes=([0, 1], [0, 1]))
