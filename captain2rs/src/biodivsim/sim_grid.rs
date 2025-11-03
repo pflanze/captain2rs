@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::coo::Coo;
 use ndarray::{Array2, ArrayView2};
 use numpy::{
@@ -5,6 +7,15 @@ use numpy::{
     PyArray2, PyReadonlyArray,
 };
 use pyo3::pyclass;
+
+/// The range of integers before and after `i` by the amount of
+/// `threshold` (exclusive the latter bound), limited to the range
+/// `0..length`.
+fn bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
+    let n_min = if i >= threshold { i - threshold } else { 0 };
+    let n_max = u32::min(length, i + threshold);
+    n_min..n_max
+}
 
 fn square_i32(x: i32) -> i32 {
     x * x
@@ -53,14 +64,8 @@ pub fn dispersal_distances_threshold(
 
     for i in 0..length {
         for j in 0..length {
-            let n_min = if i >= threshold { i - threshold } else { 0 };
-            let n_max = u32::min(length, i + threshold);
-
-            let m_min = if j >= threshold { j - threshold } else { 0 };
-            let m_max = u32::min(length, j + threshold);
-
-            for n in n_min..n_max {
-                for m in m_min..m_max {
+            for n in bounded_range_around(i, length, threshold) {
+                for m in bounded_range_around(j, length, threshold) {
                     let dx = (i as Float - n as Float).powi(2); // XX why not in i64!
                     let dy = (j as Float - m as Float).powi(2);
                     let dist = (dx + dy).sqrt();
@@ -132,13 +137,8 @@ impl DispersalDistancesThreshold {
         (0..dim_i).for_each(|i| {
             // XXX wrong?
             for j in 0..dim_j {
-                let n_min = if i >= threshold { i - threshold } else { 0 };
-                let n_max = u32::min(length, i + threshold);
-                let m_min = if j >= threshold { j - threshold } else { 0 };
-                let m_max = u32::min(length, j + threshold);
-
-                for n in n_min..n_max {
-                    for m in m_min..m_max {
+                for n in bounded_range_around(i, length, threshold) {
+                    for m in bounded_range_around(j, length, threshold) {
                         c[(n as usize, m as usize)] +=
                             a[(i as usize, j as usize)] * dot_transform(self.precise_at(i, j, n, m))
                     }
