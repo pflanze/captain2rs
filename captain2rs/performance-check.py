@@ -28,18 +28,7 @@ def pp(nam, val):
 
 rng = np.random.default_rng(42)
 
-#A = rng.random((800, 800), dtype=np.float32)
-A = np.array([
-    [0, 9, 2, 0, 0, 0, 3, 0, 0],
-    [0, 0, 2, 0, 0, 0, 0, 0, 0],
-    [0, 0, 2, 0, 0, 0, 0, 0, 0],
-    [0, 0, 2, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 3, 0, 0]
-], dtype=np.float32)
+A = rng.random((800, 800), dtype=np.float32)
 
 #B = np.random.rand(100, 100, 400, 400)
 dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_rs(A.shape[0], 2.3, 3)))
