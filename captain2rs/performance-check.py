@@ -11,6 +11,7 @@ import sparse
 from captain2rs import (dispersal_distances_threshold_rs,
                         DispersalDistancesThreshold)
 
+floattype=np.float32
 
 def mytime(nam, proc):
     res=()
@@ -28,14 +29,14 @@ def pp(nam, val):
 
 rng = np.random.default_rng(42)
 
-A = rng.random((800, 800), dtype=np.float32)
+A = rng.random((800, 800), dtype=floattype)
 
 #B = np.random.rand(100, 100, 400, 400)
 dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_rs(A.shape[0], 2.3, 3)))
 B = pp("dumping_dist", mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3)))  # something
 
 def method_einsum():
-    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B, dtype=np.float32).todense())
+    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B, dtype=floattype).todense())
 
 def method_inlined():
     ddt = DispersalDistancesThreshold(2.3, 3).map(lambda x: x ** (1 / 2.3));
