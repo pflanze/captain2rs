@@ -1,7 +1,7 @@
 calculating distances with threshold...
-t rust=0.126598
+t rust=0.125344
 pp rust: <COO: shape=(9, 9, 9, 9), dtype=float32, nnz=2025, fill_value=0.0>
-t dumping_dist=0.000412
+t dumping_dist=0.000525
 pp dumping_dist: <COO: shape=(9, 9, 9, 9), dtype=float64, nnz=2025, fill_value=0.0>
 pp einsum: [[12.314083  14.596956  13.610014  13.465076   6.919816   2.4832702
    3.         2.4832702  2.055544 ]
@@ -21,52 +21,52 @@ pp einsum: [[12.314083  14.596956  13.610014  13.465076   6.919816   2.4832702
    2.4832702  2.2962449  1.9658313]
  [ 0.         0.         0.         1.7014902  2.055544   2.4832702
    3.         2.4832702  2.055544 ]]
-t method_einsum=0.000951
+t method_einsum=0.000986
 pp inlined: [[12.314084  14.596957  13.610014  13.465077   6.9198165  2.4832702
    3.         2.4832702  2.055544 ]
- [12.051926  13.477539  13.570125  13.57531    7.1290216  2.2962449
-   2.4832702  2.2962449  1.965831 ]
- [11.060684  12.194359  12.578883  12.817923   6.92077    1.965831
-   2.055544   1.965831   1.75758  ]
- [ 3.8526366  4.4968977  5.025876   4.4968977  3.8526366  0.
+ [12.051927  13.477539  13.570125  13.57531    7.1290216  2.2962449
+   2.4832702  2.2962449  1.9658313]
+ [11.060685  12.194359  12.578884  12.817923   6.920771   1.9658313
+   2.055544   1.9658313  1.7575803]
+ [ 3.8526368  4.4968977  5.025876   4.4968977  3.8526368  0.
    0.         0.         0.       ]
- [ 2.482274   2.841384   3.025876   2.841384   2.482274   0.
+ [ 2.4822743  2.841384   3.025876   2.841384   2.4822743  0.
    0.         0.         0.       ]
- [ 1.17172    1.310554   1.3703625  2.6558323  2.6891735  1.6500874
+ [ 1.1717201  1.3105541  1.3703625  2.6558323  2.6891737  1.6500874
    1.7014902  1.6500874  1.5174534]
- [ 0.         0.         0.         1.5174534  1.75758    1.965831
-   2.055544   1.965831   1.75758  ]
- [ 0.         0.         0.         1.6500874  1.965831   2.2962449
-   2.4832702  2.2962449  1.965831 ]
+ [ 0.         0.         0.         1.5174534  1.7575803  1.9658313
+   2.055544   1.9658313  1.7575803]
+ [ 0.         0.         0.         1.6500874  1.9658313  2.2962449
+   2.4832702  2.2962449  1.9658313]
  [ 0.         0.         0.         1.7014902  2.055544   2.4832702
    3.         2.4832702  2.055544 ]]
-t method_inlined=0.000296
+t method_inlined=0.000301
 [[0.99999994 0.99999994 1.         0.99999994 0.99999994 1.
   1.         1.         1.        ]
- [1.         1.         1.         0.9999999  1.0000001  1.
-  1.         1.         1.0000001 ]
- [1.         1.         1.0000001  0.99999994 1.0000001  1.0000001
-  1.         1.0000001  1.0000001 ]
- [1.0000001  1.         1.         1.         1.0000001         nan
-         nan        nan        nan]
- [1.0000001  1.         1.         1.         1.0000001         nan
-         nan        nan        nan]
- [1.0000001  1.0000001  1.         1.         1.0000001  1.
+ [0.99999994 1.         1.         0.9999999  1.0000001  1.
   1.         1.         1.        ]
- [       nan        nan        nan 1.         1.0000001  1.0000001
-  1.         1.0000001  1.0000001 ]
- [       nan        nan        nan 1.         1.0000001  1.
-  1.         1.         1.0000001 ]
+ [0.99999994 1.         1.         0.99999994 0.99999994 1.
+  1.         1.         1.        ]
+ [1.         1.         1.         1.         1.                nan
+         nan        nan        nan]
+ [1.         1.         1.         1.         1.                nan
+         nan        nan        nan]
+ [1.         1.         1.         1.         1.         1.
+  1.         1.         1.        ]
+ [       nan        nan        nan 1.         1.         1.
+  1.         1.         1.        ]
+ [       nan        nan        nan 1.         1.         1.
+  1.         1.         1.        ]
  [       nan        nan        nan 1.         1.         1.
   1.         1.         1.        ]]
 [[False False  True False False  True  True  True  True]
- [ True  True  True False False  True  True  True False]
- [ True  True False False False False  True False False]
- [False  True  True  True False  True  True  True  True]
- [False  True  True  True False  True  True  True  True]
- [False False  True  True False  True  True  True  True]
- [ True  True  True  True False False  True False False]
- [ True  True  True  True False  True  True  True False]
+ [False  True  True False False  True  True  True  True]
+ [False  True  True False False  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
  [ True  True  True  True  True  True  True  True  True]]
 
 
@@ -88,66 +88,66 @@ pp einsum: [[12.314083  14.596956  13.610014  13.465076   6.919816   2.4832702
    2.4832702  2.2962449  1.9658313]
  [ 0.         0.         0.         1.7014902  2.055544   2.4832702
    3.         2.4832702  2.055544 ]]
-t method_einsum=0.001536
+t method_einsum=0.001661
 pp inlined: [[12.314084  14.596957  13.610014  13.465077   6.9198165  2.4832702
    3.         2.4832702  2.055544 ]
- [12.051926  13.477539  13.570125  13.57531    7.1290216  2.2962449
-   2.4832702  2.2962449  1.965831 ]
- [11.060684  12.194359  12.578883  12.817923   6.92077    1.965831
-   2.055544   1.965831   1.75758  ]
- [ 3.8526366  4.4968977  5.025876   4.4968977  3.8526366  0.
+ [12.051927  13.477539  13.570125  13.57531    7.1290216  2.2962449
+   2.4832702  2.2962449  1.9658313]
+ [11.060685  12.194359  12.578884  12.817923   6.920771   1.9658313
+   2.055544   1.9658313  1.7575803]
+ [ 3.8526368  4.4968977  5.025876   4.4968977  3.8526368  0.
    0.         0.         0.       ]
- [ 2.482274   2.841384   3.025876   2.841384   2.482274   0.
+ [ 2.4822743  2.841384   3.025876   2.841384   2.4822743  0.
    0.         0.         0.       ]
- [ 1.17172    1.310554   1.3703625  2.6558323  2.6891735  1.6500874
+ [ 1.1717201  1.3105541  1.3703625  2.6558323  2.6891737  1.6500874
    1.7014902  1.6500874  1.5174534]
- [ 0.         0.         0.         1.5174534  1.75758    1.965831
-   2.055544   1.965831   1.75758  ]
- [ 0.         0.         0.         1.6500874  1.965831   2.2962449
-   2.4832702  2.2962449  1.965831 ]
+ [ 0.         0.         0.         1.5174534  1.7575803  1.9658313
+   2.055544   1.9658313  1.7575803]
+ [ 0.         0.         0.         1.6500874  1.9658313  2.2962449
+   2.4832702  2.2962449  1.9658313]
  [ 0.         0.         0.         1.7014902  2.055544   2.4832702
    3.         2.4832702  2.055544 ]]
-t method_inlined=0.000599
+t method_inlined=0.000621
 [[0.99999994 0.99999994 1.         0.99999994 0.99999994 1.
   1.         1.         1.        ]
- [1.         1.         1.         0.9999999  1.0000001  1.
-  1.         1.         1.0000001 ]
- [1.         1.         1.0000001  0.99999994 1.0000001  1.0000001
-  1.         1.0000001  1.0000001 ]
- [1.0000001  1.         1.         1.         1.0000001         nan
-         nan        nan        nan]
- [1.0000001  1.         1.         1.         1.0000001         nan
-         nan        nan        nan]
- [1.0000001  1.0000001  1.         1.         1.0000001  1.
+ [0.99999994 1.         1.         0.9999999  1.0000001  1.
   1.         1.         1.        ]
- [       nan        nan        nan 1.         1.0000001  1.0000001
-  1.         1.0000001  1.0000001 ]
- [       nan        nan        nan 1.         1.0000001  1.
-  1.         1.         1.0000001 ]
+ [0.99999994 1.         1.         0.99999994 0.99999994 1.
+  1.         1.         1.        ]
+ [1.         1.         1.         1.         1.                nan
+         nan        nan        nan]
+ [1.         1.         1.         1.         1.                nan
+         nan        nan        nan]
+ [1.         1.         1.         1.         1.         1.
+  1.         1.         1.        ]
+ [       nan        nan        nan 1.         1.         1.
+  1.         1.         1.        ]
+ [       nan        nan        nan 1.         1.         1.
+  1.         1.         1.        ]
  [       nan        nan        nan 1.         1.         1.
   1.         1.         1.        ]]
 [[False False  True False False  True  True  True  True]
- [ True  True  True False False  True  True  True False]
- [ True  True False False False False  True False False]
- [False  True  True  True False  True  True  True  True]
- [False  True  True  True False  True  True  True  True]
- [False False  True  True False  True  True  True  True]
- [ True  True  True  True False False  True False False]
- [ True  True  True  True False  True  True  True False]
+ [False  True  True False False  True  True  True  True]
+ [False  True  True False False  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
+ [ True  True  True  True  True  True  True  True  True]
  [ True  True  True  True  True  True  True  True  True]]
 
 
-         7344 function calls (6984 primitive calls) in 0.003 seconds
+         7361 function calls (7001 primitive calls) in 0.003 seconds
 
    Ordered by: internal time
-   List reduced from 208 to 15 due to restriction <15>
+   List reduced from 210 to 15 due to restriction <15>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
     364/4    0.000    0.000    0.001    0.000 arrayprint.py:789(recurser)
       243    0.000    0.000    0.000    0.000 arrayprint.py:1018(__call__)
         4    0.000    0.000    0.000    0.000 {built-in method builtins.compile}
-      452    0.000    0.000    0.000    0.000 {built-in method numpy.core._multiarray_umath.dragon4_positional}
       324    0.000    0.000    0.000    0.000 arrayprint.py:739(_extendLine)
+      452    0.000    0.000    0.000    0.000 {built-in method numpy.core._multiarray_umath.dragon4_positional}
      2654    0.000    0.000    0.000    0.000 {built-in method builtins.len}
       324    0.000    0.000    0.000    0.000 arrayprint.py:753(_extendLine_pretty)
         3    0.000    0.000    0.001    0.000 arrayprint.py:934(fillFormat)
@@ -155,8 +155,8 @@ t method_inlined=0.000599
       229    0.000    0.000    0.000    0.000 arrayprint.py:989(<genexpr>)
       229    0.000    0.000    0.000    0.000 arrayprint.py:984(<genexpr>)
        43    0.000    0.000    0.000    0.000 {built-in method builtins.max}
+        1    0.000    0.000    0.000    0.000 _common.py:1303(_einsum_single)
       229    0.000    0.000    0.000    0.000 {method 'split' of 'str' objects}
       324    0.000    0.000    0.000    0.000 {method 'splitlines' of 'str' objects}
-        2    0.000    0.000    0.000    0.000 _umath.py:457(get_result)
 
 
