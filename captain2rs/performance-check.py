@@ -26,37 +26,37 @@ def pp(nam, val):
     print(f"pp {nam}: {val}")
     return val
 
+def pp_mytime(nam, proc):
+    return pp(nam, mytime(nam, proc))
+
 
 rng = np.random.default_rng(42)
 
 A = rng.random((800, 800), dtype=floattype)
 
-#B = np.random.rand(100, 100, 400, 400)
-dumping_dist = pp("rust", mytime("rust", lambda: dispersal_distances_threshold_rs(A.shape[0], 2.3, 3)))
-B = pp("dumping_dist", mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3)))  # something
+dumping_dist = pp_mytime("rust", lambda: dispersal_distances_threshold_rs(A.shape[0], 2.3, 3))
+B = pp_mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3))
 
-def method_einsum():
-    return pp("einsum", sparse.einsum("ij,ijnm->nm", A, B, dtype=floattype).todense())
+def bench_einsum():
+    return sparse.einsum("ij,ijnm->nm", A, B, dtype=floattype).todense()
 
-def method_inlined():
+def bench_inlined():
     ddt = DispersalDistancesThreshold(2.3, 3).map(lambda x: x ** (1 / 2.3));
-    return pp("inlined", ddt.apply(A))
+    return ddt.apply(A)
 
-def method_tensordot():
+def bench_tensordot():
     return np.tensordot(A, B, axes=([0, 1], [0, 1]))
 
-def method_broadcasting():
+def bench_broadcasting():
     return (A[:, :, None, None] * B).sum(axis=(0, 1))
 
 def profiling():
-    einsum = mytime("method_einsum", method_einsum)
-    inlined = mytime("method_inlined", method_inlined)
+    einsum = pp_mytime("einsum", bench_einsum)
+    inlined = pp_mytime("inlined", bench_inlined)
     print(einsum / inlined)
     print(einsum == inlined)
-    # tensordot = mytime("method_tensordot", method_tensordot)
-    # print(f"Tensordot:     {tensordot}")
-    # broadcasting = mytime("method_broadcasting", method_broadcasting)
-    # print(f"Broadcasting:  {broadcasting}")
+    # tensordot = pp_mytime("tensordot", bench_tensordot)
+    # broadcasting = pp_mytime("broadcasting", bench_broadcasting)
     # print(einsum == tensordot)
     # print(einsum == broadcasting)
     # print(tensordot == broadcasting)
