@@ -12,7 +12,7 @@ use pyo3::pyclass;
 /// `threshold` (exclusive the latter bound), limited to the range
 /// `0..length`.
 fn bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
-    let n_min = if i >= threshold { i - threshold } else { 0 };
+    let n_min = i.saturating_sub(threshold);
     let n_max = u32::min(length, i + threshold);
     n_min..n_max
 }
