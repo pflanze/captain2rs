@@ -17,6 +17,14 @@ fn bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
     n_min..n_max
 }
 
+/// Same as `bounded_range_around` but does not include the lower
+/// bound, and instead includes the upper bound. `threshold` must be >= 1.
+fn flipped_bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
+    let n_min = i.saturating_sub(threshold - 1);
+    let n_max = u32::min(length, i + threshold + 1);
+    n_min..n_max
+}
+
 fn square_i32(x: i32) -> i32 {
     x * x
 }
@@ -169,8 +177,8 @@ impl DispersalDistancesThreshold {
             // XXX wrong?
             for j in 0..dim_j {
                 let mut sum = 0.;
-                for n in bounded_range_around(i, dim_i, threshold) {
-                    for m in bounded_range_around(j, dim_j, threshold) {
+                for n in flipped_bounded_range_around(i, dim_i, threshold) {
+                    for m in flipped_bounded_range_around(j, dim_j, threshold) {
                         sum += a[(n as usize, m as usize)] * dot_transform(self.at(n, m, i, j))
                     }
                 }
