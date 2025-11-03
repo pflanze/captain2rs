@@ -93,6 +93,7 @@ pub fn dispersal_distances_threshold(
 }
 
 #[pyclass(frozen)]
+#[derive(Debug)]
 pub struct DispersalDistancesThreshold {
     pub threshold: u32,
     pub neg_exp_rate: Float,
@@ -147,9 +148,50 @@ impl DispersalDistancesThreshold {
     fn at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
         self.cached_at(i, j, n, m)
     }
+
+    // (Ugly: panics for python errors, because ndarray does not have
+    // a `try_map`. But pyo3 converts panics to exceptions, so no big
+    // deal.)
+    #[pyo3(name = "map")]
+    fn map_rs<'py>(&self, py: Python<'py>, dot_transform: Py<PyAny>) -> Self {
+        self.map(|x| {
+            dot_transform
+                .call(py, (x,), None)
+                .expect("map() expects a Python callable with one argument")
+                .extract(py)
+                .expect("map(): callable did not return a floating point value")
+        })
+    }
+
+    #[pyo3(name = "apply")]
+    fn apply_rs<'py>(
+        &self,
+        py: Python<'py>,
+        a: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
+    ) -> Bound<'py, PyArray2<Float>> {
+        PyArray2::from_owned_array(py, self.apply(a.as_array()))
+    }
+
+    fn print(&self) {
+        println!("{self:#?}");
+    }
 }
 
 impl DispersalDistancesThreshold {
+    fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
+        let Self {
+            threshold,
+            neg_exp_rate,
+            cache,
+        } = self;
+        let cache = cache.map(|x| dot_transform(*x));
+        Self {
+            threshold: *threshold,
+            neg_exp_rate: *neg_exp_rate,
+            cache,
+        }
+    }
+
     fn apply_with_dot_transform(
         &self,
         dot_transform: impl Fn(Float) -> Float,
@@ -187,6 +229,10 @@ impl DispersalDistancesThreshold {
         });
 
         c
+    }
+
+    fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
+        self.apply_with_dot_transform(|x| x, a)
     }
 }
 
@@ -303,26 +349,11 @@ pub fn dispersal_distances_coord_rs<'py>(
     result_coo.to_python_sparse(py)
 }
 
-#[pyfunction]
-fn dispersal_distances_threshold_eval_1_rs<'py>(
-    py: Python<'py>,
-    a: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
-    b: &Bound<'_, DispersalDistancesThreshold>,
-) -> Bound<'py, PyArray2<Float>> {
-    let a_view = a.as_array();
-    let res: Array2<Float> = b
-        .borrow()
-        .apply_with_dot_transform(|x| x.powf(1. / 2.3), a_view);
-    PyArray2::from_owned_array(py, res)
-}
-
 /// Export to Python
 #[pymodule]
 mod captain2rs {
     #[pymodule_export]
     use super::dispersal_distances_coord_rs;
-    #[pymodule_export]
-    use super::dispersal_distances_threshold_eval_1_rs;
     #[pymodule_export]
     use super::dispersal_distances_threshold_rs;
     #[pymodule_export]
