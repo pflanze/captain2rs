@@ -29,7 +29,7 @@ fn square_i32(x: i32) -> i32 {
     x * x
 }
 
-type Float = f32;
+type Float = f64;
 
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
