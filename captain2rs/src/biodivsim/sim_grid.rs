@@ -216,7 +216,6 @@ impl DispersalDistancesThreshold {
         let dim_j = shape.1 as u32;
 
         (0..dim_i).for_each(|i| {
-            // XXX wrong?
             for j in 0..dim_j {
                 let mut sum = 0.;
                 for n in flipped_bounded_range_around(i, dim_i, threshold) {
