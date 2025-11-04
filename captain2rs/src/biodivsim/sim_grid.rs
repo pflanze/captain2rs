@@ -215,7 +215,7 @@ impl DispersalDistancesThreshold {
 
         (0..dim_i).for_each(|i| {
             for j in 0..dim_j {
-                let mut sum: Float = 0.;
+                let mut sum = 0.;
                 for n in flipped_bounded_range_around(i, dim_i, threshold) {
                     for m in flipped_bounded_range_around(j, dim_j, threshold) {
                         sum += a[(n as usize, m as usize)] * self.at(n, m, i, j)
