@@ -8,7 +8,7 @@ import timeit
 import numpy as np
 import sparse
 
-from captain2rs import (dispersal_distances_threshold_rs,
+from captain2rs import (dispersal_distances_threshold_rs, num_candidates_rs,
                         DispersalDistancesThreshold)
 
 floattype=np.float64
@@ -30,31 +30,57 @@ def pp_mytime(nam, proc):
     return pp(nam, mytime(nam, proc))
 
 
+lambda_0 = np.array([2.3, 4.1, 0.9, 4, 2, 9, 6.4, 10, 0.3, 3.9, 4.1, 8.3], dtype=floattype)
+n_species = len(lambda_0)
+print(f"n_species={n_species}")
+
 rng = np.random.default_rng(42)
 
-A = rng.random((800, 800), dtype=floattype)
+h = np.array([rng.random((800, 800), dtype=floattype) for i in range(n_species)], dtype=floattype)
 
-dumping_dist = pp_mytime("rust", lambda: dispersal_distances_threshold_rs(A.shape[0], 2.3, 3))
-B = pp_mytime("dumping_dist", lambda: dumping_dist ** (1 / 2.3))
+dumping_dist = pp_mytime("rust", lambda: dispersal_distances_threshold_rs(h[0].shape[0], 2.3, 3))
 
 def bench_einsum():
-    return sparse.einsum("ij,ijnm->nm", A, B, dtype=floattype).todense()
+    return np.array(
+          [
+              sparse.einsum(
+                  "ij,ijnm->nm",
+                  h[i],
+                  dumping_dist ** (1 / lambda_0[i]),
+                  dtype=floattype
+              ).todense()
+              for i in range(n_species)
+          ])
 
-def bench_inlined():
-    ddt = DispersalDistancesThreshold(2.3, 3).map(lambda x: x ** (1 / 2.3));
-    return ddt.apply(A)
+def bench_rust_python():
+    ddt=DispersalDistancesThreshold(lambda_0=2.3, threshold=3)
+    return np.array(
+          [
+              ddt.map(lambda x: x ** (1 / lambda_0[i])).apply(h[i])
+              for i in range(n_species)
+          ])
 
-def bench_tensordot():
-    return np.tensordot(A, B, axes=([0, 1], [0, 1]))
+def bench_rust_parallel():
+    return num_candidates_rs(
+        n_species=n_species,
+        lambda_0_init=2.3,
+        threshold=3,
+        lambda_0=lambda_0,
+        h=h)
 
-def bench_broadcasting():
-    return (A[:, :, None, None] * B).sum(axis=(0, 1))
+# def bench_tensordot():
+#     return np.tensordot(A, B, axes=([0, 1], [0, 1]))
+
+# def bench_broadcasting():
+#     return (A[:, :, None, None] * B).sum(axis=(0, 1))
 
 def profiling():
+    rust_python = pp_mytime("rust_python", bench_rust_python)
+    rust_parallel = pp_mytime("rust_parallel", bench_rust_parallel)
+    print("rust_python == rust_parallel: ", rust_python == rust_parallel)
     einsum = pp_mytime("einsum", bench_einsum)
-    inlined = pp_mytime("inlined", bench_inlined)
-    print(einsum / inlined)
-    print(einsum == inlined)
+    print("einsum / rust_python: ", einsum / rust_python)
+    print("einsum == rust_python: ", einsum == rust_python)
     # tensordot = pp_mytime("tensordot", bench_tensordot)
     # broadcasting = pp_mytime("broadcasting", bench_broadcasting)
     # print(einsum == tensordot)
