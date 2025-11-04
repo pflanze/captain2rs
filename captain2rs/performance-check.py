@@ -30,7 +30,11 @@ def pp_mytime(nam, proc):
     return pp(nam, mytime(nam, proc))
 
 
-lambda_0 = np.array([2.3, 4.1, 0.9, 4, 2, 9, 6.4, 10, 0.3, 3.9, 4.1, 8.3], dtype=floattype)
+lambda_0 = np.array([2.3, 4.1, 0.9, 4, 2, 9, 6.4, 10, 0.3, 3.9, 4.1, 8.3,
+                     2.3, 4.1, 0.9, 4, 2, 9, 6.4, 10, 0.3, 3.9, 4.1, 8.3,
+                     2.3, 4.1, 0.9, 4, 2, 9, 6.4, 10, 0.3, 3.9, 4.1, 8.3,
+                     2.3, 4.1, 0.9, 4, 2, 9, 6.4, 10, 0.3, 3.9, 4.1, 8.3,
+                     2.3, 4.1, 0.9, 4, 2, 9, 6.4, 10, 0.3, 3.9, 4.1, 8.3, ], dtype=floattype)
 n_species = len(lambda_0)
 print(f"n_species={n_species}")
 
