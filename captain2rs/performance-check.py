@@ -42,7 +42,7 @@ rng = np.random.default_rng(42)
 
 h = np.array([rng.random((800, 800), dtype=floattype) for i in range(n_species)], dtype=floattype)
 
-threshold=8
+threshold=3
 
 dumping_dist = pp_mytime("rust", lambda: dispersal_distances_threshold_rs(h[0].shape[0], 2.3, threshold))
 
