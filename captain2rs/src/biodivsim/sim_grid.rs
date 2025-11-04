@@ -221,7 +221,7 @@ impl DispersalDistancesThreshold {
                         sum += a[(n as usize, m as usize)] * self.at(n, m, i, j)
                     }
                 }
-                c[(i as usize, j as usize)] = MaybeUninit::new(sum);
+                c[(i as usize, j as usize)].write(sum);
             }
         });
     }
