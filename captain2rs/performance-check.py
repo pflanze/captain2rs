@@ -100,4 +100,10 @@ with Profile() as profile:
          .sort_stats(SortKey.TIME)
          .print_stats(15)
     )
-    
+
+
+pp_mytime("rust_parallel", bench_rust_parallel)
+pp_mytime("rust_parallel", bench_rust_parallel)
+pp_mytime("rust_parallel", bench_rust_parallel)
+pp_mytime("rust_parallel", bench_rust_parallel)
+pp_mytime("rust_parallel", bench_rust_parallel)
