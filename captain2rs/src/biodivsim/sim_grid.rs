@@ -130,7 +130,7 @@ impl DispersalDistancesThreshold {
         dist_value(self.neg_exp_rate, i as i32 - n as i32, j as i32 - m as i32)
     }
 
-    /// Only valid in range of differences as per `self.length`,
+    /// Only valid in range of differences as per `self.threshold`,
     /// panics otherwise
     #[inline]
     fn cached_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
