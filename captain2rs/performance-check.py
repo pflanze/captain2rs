@@ -11,7 +11,7 @@ import sparse
 from captain2rs import (dispersal_distances_threshold_rs, num_candidates_rs,
                         DispersalDistancesThreshold)
 
-floattype=np.float64
+floattype=np.float32
 
 def mytime(nam, proc):
     res=()

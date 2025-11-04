@@ -11,6 +11,8 @@ use numpy::{
 use pyo3::pyclass;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
+type Float = f32;
+
 /// The range of integers before and after `i` by the amount of
 /// `threshold` (exclusive the latter bound), limited to the range
 /// `0..length`.
@@ -31,8 +33,6 @@ fn flipped_bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u3
 fn square_i32(x: i32) -> i32 {
     x * x
 }
-
-type Float = f64;
 
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
@@ -354,7 +354,7 @@ fn num_candidates_rs<'py>(
     threshold: u32,
     lambda_0: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 1]>>,
     h: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 3]>>,
-) -> Bound<'py, PyArray3<f64>> {
+) -> Bound<'py, PyArray3<Float>> {
     let lambda_0 = lambda_0.as_array();
     let h = h.as_array();
 
