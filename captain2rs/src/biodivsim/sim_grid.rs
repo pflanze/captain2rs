@@ -1,12 +1,14 @@
 use std::ops::Range;
 
 use crate::coo::Coo;
+use ndarray::parallel::prelude::*;
 use ndarray::{Array2, Array3, ArrayView2, ArrayViewMut2, Axis};
 use numpy::{
     pyo3::{self, prelude::*},
     PyArray2, PyArray3, PyReadonlyArray,
 };
 use pyo3::pyclass;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 /// The range of integers before and after `i` by the amount of
 /// `threshold` (exclusive the latter bound), limited to the range
@@ -362,10 +364,13 @@ fn num_candidates_rs<'py>(
 
     let mut res = Array3::<Float>::zeros((n_species, o, p)); // XX uninit?
     let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
-    (0..n_species).for_each(|i| {
-        ddt.map(|x| x.powf(1. / lambda_0[i]))
-            .apply_to(h.index_axis(Axis(0), i), res.index_axis_mut(Axis(0), i));
-    });
+    res.axis_iter_mut(Axis(0))
+        .into_par_iter()
+        .enumerate()
+        .for_each(|(i, res)| {
+            ddt.map(|x| x.powf(1. / lambda_0[i]))
+                .apply_to(h.index_axis(Axis(0), i), res);
+        });
 
     PyArray3::from_array(py, &res) // XX *oh*, numpy copies?
 }
