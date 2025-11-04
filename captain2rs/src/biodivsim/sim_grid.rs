@@ -1,3 +1,4 @@
+use std::mem::MaybeUninit;
 use std::ops::Range;
 
 use crate::coo::Coo;
@@ -194,7 +195,7 @@ impl DispersalDistancesThreshold {
         }
     }
 
-    fn apply_to(&self, a: ArrayView2<Float>, mut c: ArrayViewMut2<Float>) {
+    fn apply_to(&self, a: ArrayView2<Float>, mut c: ArrayViewMut2<MaybeUninit<Float>>) {
         let DispersalDistancesThreshold {
             threshold,
             neg_exp_rate: _,
@@ -214,21 +215,21 @@ impl DispersalDistancesThreshold {
 
         (0..dim_i).for_each(|i| {
             for j in 0..dim_j {
-                let mut sum = 0.;
+                let mut sum: Float = 0.;
                 for n in flipped_bounded_range_around(i, dim_i, threshold) {
                     for m in flipped_bounded_range_around(j, dim_j, threshold) {
                         sum += a[(n as usize, m as usize)] * self.at(n, m, i, j)
                     }
                 }
-                c[(i as usize, j as usize)] = sum;
+                c[(i as usize, j as usize)] = MaybeUninit::new(sum);
             }
         });
     }
 
     fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
-        let mut c = Array2::zeros(a.dim());
+        let mut c = Array2::<Float>::uninit(a.dim());
         self.apply_to(a, c.view_mut());
-        c
+        unsafe { c.assume_init() }
     }
 }
 
@@ -362,7 +363,7 @@ fn num_candidates_rs<'py>(
         panic!("n_species {n_species} is higher than the number of subarrays {n} in h")
     }
 
-    let mut res = Array3::<Float>::zeros((n_species, o, p)); // XX uninit?
+    let mut res = Array3::<Float>::uninit((n_species, o, p));
     let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
     res.axis_iter_mut(Axis(0))
         .into_par_iter()
@@ -372,7 +373,7 @@ fn num_candidates_rs<'py>(
                 .apply_to(h.index_axis(Axis(0), i), res);
         });
 
-    PyArray3::from_array(py, &res) // XX *oh*, numpy copies?
+    PyArray3::from_array(py, &unsafe { res.assume_init() }) // XX *oh*, numpy copies?
 }
 
 /// Export to Python
