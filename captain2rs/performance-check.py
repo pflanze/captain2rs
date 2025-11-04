@@ -42,7 +42,9 @@ rng = np.random.default_rng(42)
 
 h = np.array([rng.random((800, 800), dtype=floattype) for i in range(n_species)], dtype=floattype)
 
-dumping_dist = pp_mytime("rust", lambda: dispersal_distances_threshold_rs(h[0].shape[0], 2.3, 3))
+threshold=8
+
+dumping_dist = pp_mytime("rust", lambda: dispersal_distances_threshold_rs(h[0].shape[0], 2.3, threshold))
 
 def bench_einsum():
     return np.array(
@@ -57,7 +59,7 @@ def bench_einsum():
           ])
 
 def bench_rust_python():
-    ddt=DispersalDistancesThreshold(lambda_0=2.3, threshold=3)
+    ddt=DispersalDistancesThreshold(lambda_0=2.3, threshold=threshold)
     return np.array(
           [
               ddt.map(lambda x: x ** (1 / lambda_0[i])).apply(h[i])
@@ -68,7 +70,7 @@ def bench_rust_parallel():
     return num_candidates_rs(
         n_species=n_species,
         lambda_0_init=2.3,
-        threshold=3,
+        threshold=threshold,
         lambda_0=lambda_0,
         h=h)
 
