@@ -213,7 +213,7 @@ impl DispersalDistancesThreshold {
         let dim_i = shape.0 as u32;
         let dim_j = shape.1 as u32;
 
-        (0..dim_i).for_each(|i| {
+        for i in 0..dim_i {
             for j in 0..dim_j {
                 let mut sum = 0.;
                 for n in flipped_bounded_range_around(i, dim_i, threshold) {
@@ -223,7 +223,7 @@ impl DispersalDistancesThreshold {
                 }
                 c[(i as usize, j as usize)].write(sum);
             }
-        });
+        }
     }
 
     fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
