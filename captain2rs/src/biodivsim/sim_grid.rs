@@ -373,7 +373,7 @@ fn num_candidates_rs<'py>(
                 .apply_to(h.index_axis(Axis(0), i), res);
         });
 
-    PyArray3::from_array(py, &unsafe { res.assume_init() }) // XX *oh*, numpy copies?
+    PyArray3::from_owned_array(py, unsafe { res.assume_init() })
 }
 
 /// Export to Python
