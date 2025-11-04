@@ -11,7 +11,7 @@ use numpy::{
 use pyo3::pyclass;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-type Float = f32;
+type Float = f64;
 
 /// The range of integers before and after `i` by the amount of
 /// `threshold` (exclusive the latter bound), limited to the range
