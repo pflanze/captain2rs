@@ -1,10 +1,10 @@
 use std::ops::Range;
 
 use crate::coo::Coo;
-use ndarray::{Array2, ArrayView2};
+use ndarray::{Array2, Array3, ArrayView2, ArrayViewMut2, Axis};
 use numpy::{
     pyo3::{self, prelude::*},
-    PyArray2, PyReadonlyArray,
+    PyArray2, PyArray3, PyReadonlyArray,
 };
 use pyo3::pyclass;
 
@@ -192,11 +192,7 @@ impl DispersalDistancesThreshold {
         }
     }
 
-    fn apply_with_dot_transform(
-        &self,
-        dot_transform: impl Fn(Float) -> Float,
-        a: ArrayView2<Float>,
-    ) -> Array2<Float> {
+    fn apply_to(&self, a: ArrayView2<Float>, mut c: ArrayViewMut2<Float>) {
         let DispersalDistancesThreshold {
             threshold,
             neg_exp_rate: _,
@@ -204,7 +200,6 @@ impl DispersalDistancesThreshold {
         } = *self;
 
         let shape = a.dim();
-        let mut c = Array2::zeros(shape); // XX use numpy directly?
 
         // for p in 0..shape.0 {
         //     for q in 0..shape.1 {
@@ -220,18 +215,18 @@ impl DispersalDistancesThreshold {
                 let mut sum = 0.;
                 for n in flipped_bounded_range_around(i, dim_i, threshold) {
                     for m in flipped_bounded_range_around(j, dim_j, threshold) {
-                        sum += a[(n as usize, m as usize)] * dot_transform(self.at(n, m, i, j))
+                        sum += a[(n as usize, m as usize)] * self.at(n, m, i, j)
                     }
                 }
                 c[(i as usize, j as usize)] = sum;
             }
         });
-
-        c
     }
 
     fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
-        self.apply_with_dot_transform(|x| x, a)
+        let mut c = Array2::zeros(a.dim());
+        self.apply_to(a, c.view_mut());
+        c
     }
 }
 
@@ -348,6 +343,33 @@ pub fn dispersal_distances_coord_rs<'py>(
     result_coo.to_python_sparse(py)
 }
 
+#[pyfunction]
+fn num_candidates_rs<'py>(
+    py: Python<'py>,
+    n_species: usize,
+    lambda_0_init: Float,
+    threshold: u32,
+    lambda_0: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 1]>>,
+    h: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 3]>>,
+) -> Bound<'py, PyArray3<f64>> {
+    let lambda_0 = lambda_0.as_array();
+    let h = h.as_array();
+
+    let (n, o, p) = h.dim();
+    if n < n_species {
+        panic!("n_species {n_species} is higher than the number of subarrays {n} in h")
+    }
+
+    let mut res = Array3::<Float>::zeros((n_species, o, p)); // XX uninit?
+    let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
+    (0..n_species).for_each(|i| {
+        ddt.map(|x| x.powf(1. / lambda_0[i]))
+            .apply_to(h.index_axis(Axis(0), i), res.index_axis_mut(Axis(0), i));
+    });
+
+    PyArray3::from_array(py, &res) // XX *oh*, numpy copies?
+}
+
 /// Export to Python
 #[pymodule]
 mod captain2rs {
@@ -357,6 +379,8 @@ mod captain2rs {
     use super::dispersal_distances_threshold_rs;
     #[pymodule_export]
     use super::dispersal_distances_threshold_test_rs;
+    #[pymodule_export]
+    use super::num_candidates_rs;
     #[pymodule_export]
     use super::DispersalDistancesThreshold;
 }
