@@ -23,11 +23,15 @@ fn bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
 }
 
 /// Same as `bounded_range_around` but does not include the lower
-/// bound, and instead includes the upper bound. `threshold` must be >= 1.
-fn flipped_bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
+/// bound, and instead includes the upper bound; also returns whether
+/// the threshold window is unclipped. `threshold` must be >= 1.
+fn flipped_bounded_range_around(i: u32, length: u32, threshold: u32) -> (Range<u32>, bool) {
     let n_min = i.saturating_sub(threshold - 1);
     let n_max = u32::min(length, i + threshold + 1);
-    n_min..n_max
+    (
+        n_min..n_max,
+        i >= threshold && (i + threshold + 1) <= length,
+    )
 }
 
 fn square_i32(x: i32) -> i32 {
@@ -112,10 +116,15 @@ impl DispersalDistancesThreshold {
     #[new]
     fn new(lambda_0: Float, threshold: u32) -> Self {
         let neg_exp_rate = -1.0 / lambda_0;
-        let mut cache = Array2::zeros((threshold as usize + 1, threshold as usize + 1));
-        for i in 0..=threshold {
-            for j in 0..=threshold {
-                cache[(i as usize, j as usize)] = dist_value(neg_exp_rate, i as i32, j as i32);
+        let length = threshold * 2;
+        let mut cache = Array2::zeros((length as usize, length as usize));
+        for i in 0..length {
+            for j in 0..length {
+                cache[(i as usize, j as usize)] = dist_value(
+                    neg_exp_rate,
+                    i as i32 - threshold as i32,
+                    j as i32 - threshold as i32,
+                );
             }
         }
 
@@ -135,8 +144,8 @@ impl DispersalDistancesThreshold {
     #[inline]
     fn cached_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
         self.cache[(
-            (i as i32 - n as i32).abs() as usize,
-            (j as i32 - m as i32).abs() as usize,
+            (self.threshold + i - n) as usize,
+            (self.threshold + j - m) as usize,
         )]
     }
 
@@ -181,6 +190,30 @@ impl DispersalDistancesThreshold {
 }
 
 impl DispersalDistancesThreshold {
+    /// `a.is_standard_layout()` must be true!
+    #[inline]
+    fn mult_and_sum<const M: u32>(
+        &self,
+        n_range: Range<u32>,
+        m_start: u32,
+        a: &ArrayView2<Float>,
+    ) -> Float {
+        let mut sum = 0.;
+        let n_range_start = n_range.start;
+        for n in n_range {
+            let a_row = a.row(n as usize);
+            let a_ptr = &a_row.as_slice().unwrap()[m_start as usize..];
+            assert!(a_ptr.len() >= M as usize);
+            let cache_row = self.cache.row((n - n_range_start) as usize);
+            let cache_ptr = &cache_row.as_slice().unwrap();
+            assert!(cache_ptr.len() >= M as usize);
+            for _m in 0..M {
+                sum += a_ptr[_m as usize] * cache_ptr[_m as usize];
+            }
+        }
+        sum
+    }
+
     fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
         let Self {
             threshold,
@@ -212,15 +245,39 @@ impl DispersalDistancesThreshold {
 
         let dim_i = shape.0 as u32;
         let dim_j = shape.1 as u32;
+        assert!(a.is_standard_layout());
+        assert!(self.cache.is_standard_layout());
 
         for i in 0..dim_i {
             for j in 0..dim_j {
-                let mut sum = 0.;
-                for n in flipped_bounded_range_around(i, dim_i, threshold) {
-                    for m in flipped_bounded_range_around(j, dim_j, threshold) {
-                        sum += a[(n as usize, m as usize)] * self.at(n, m, i, j)
+                let (n_range, n_unclipped) = flipped_bounded_range_around(i, dim_i, threshold);
+                let (m_range, m_unclipped) = flipped_bounded_range_around(j, dim_j, threshold);
+                let fallback = || {
+                    let mut sum = 0.;
+                    for n in n_range.clone() {
+                        for m in m_range.clone() {
+                            sum += a[(n as usize, m as usize)] * self.at(i, j, n, m)
+                        }
                     }
-                }
+                    sum
+                };
+                let sum = if n_unclipped && m_unclipped {
+                    match m_range.len() {
+                        2 => self.mult_and_sum::<2>(n_range, m_range.start, &a),
+                        4 => self.mult_and_sum::<4>(n_range, m_range.start, &a),
+                        6 => self.mult_and_sum::<6>(n_range, m_range.start, &a),
+                        8 => self.mult_and_sum::<8>(n_range, m_range.start, &a),
+                        10 => self.mult_and_sum::<10>(n_range, m_range.start, &a),
+                        12 => self.mult_and_sum::<12>(n_range, m_range.start, &a),
+                        14 => self.mult_and_sum::<14>(n_range, m_range.start, &a),
+                        16 => self.mult_and_sum::<16>(n_range, m_range.start, &a),
+                        18 => self.mult_and_sum::<18>(n_range, m_range.start, &a),
+                        20 => self.mult_and_sum::<20>(n_range, m_range.start, &a),
+                        _ => fallback(),
+                    }
+                } else {
+                    fallback()
+                };
                 c[(i as usize, j as usize)].write(sum);
             }
         }
