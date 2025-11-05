@@ -293,6 +293,61 @@ impl DispersalDistancesThreshold {
     }
 }
 
+/// Equivalent of
+///
+///     NumCandidates = np.array(
+///           [sparse.einsum("ij,ijnm->nm", self._h[i],
+///                          self._dumping_dist ** (1 / self._lambda_0[i])
+///                    ).todense() for i in range(self._n_species)])
+///
+/// if `self._dumping_dist` is coming from
+///
+///      dispersal_distances_threshold_rs(
+///          self._h[i].shape[0],
+///          lambda_0_init,
+///          threshold)
+///
+#[pyfunction]
+fn num_candidates_rs<'py>(
+    py: Python<'py>,
+    n_species: usize,
+    lambda_0_init: Float,
+    threshold: u32,
+    lambda_0: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 1]>>,
+    h: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 3]>>,
+) -> Bound<'py, PyArray3<Float>> {
+    let lambda_0 = lambda_0.as_array();
+    let h = h.as_array();
+
+    {
+        let n = lambda_0.dim();
+        if n < n_species {
+            panic!("n_species {n_species} is higher than the number of values {n} in `lambda_0`")
+        }
+    }
+
+    let (n, o, p) = h.dim();
+    if n < n_species {
+        panic!("n_species {n_species} is higher than the number of subarrays {n} in `h`")
+    }
+
+    let mut result = Array3::<Float>::uninit((n_species, o, p));
+    let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
+    result
+        .axis_iter_mut(Axis(0))
+        .into_par_iter()
+        .enumerate()
+        .for_each(|(i, res)| {
+            ddt.map(|x| x.powf(1. / lambda_0[i]))
+                .apply_to(h.index_axis(Axis(0), i), res);
+        });
+
+    // Safe because we iterate over all of axis 0, then overwrite all
+    // values in the iterated-over matrices via `.apply_to`, leaving
+    // nothing uninitialized.
+    PyArray3::from_owned_array(py, unsafe { result.assume_init() })
+}
+
 /// Compute dispersal distances using geographic coordinates with a threshold.
 ///
 /// # Arguments
@@ -404,40 +459,6 @@ pub fn dispersal_distances_coord_rs<'py>(
     // Assuming `to_python_sparse` converts the Coo struct to a compatible sparse format
     // (e.g., a dictionary of coordinates and values, or a SciPy sparse matrix).
     result_coo.to_python_sparse(py)
-}
-
-#[pyfunction]
-fn num_candidates_rs<'py>(
-    py: Python<'py>,
-    n_species: usize,
-    lambda_0_init: Float,
-    threshold: u32,
-    lambda_0: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 1]>>,
-    h: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 3]>>,
-) -> Bound<'py, PyArray3<Float>> {
-    let lambda_0 = lambda_0.as_array();
-    let h = h.as_array();
-
-    let (n, o, p) = h.dim();
-    if n < n_species {
-        panic!("n_species {n_species} is higher than the number of subarrays {n} in h")
-    }
-
-    let mut result = Array3::<Float>::uninit((n_species, o, p));
-    let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
-    result
-        .axis_iter_mut(Axis(0))
-        .into_par_iter()
-        .enumerate()
-        .for_each(|(i, res)| {
-            ddt.map(|x| x.powf(1. / lambda_0[i]))
-                .apply_to(h.index_axis(Axis(0), i), res);
-        });
-
-    // Safe because we iterate over all of axis 0, then overwrite all
-    // values in the iterated-over matrices via `.apply_to`, leaving
-    // nothing uninitialized.
-    PyArray3::from_owned_array(py, unsafe { result.assume_init() })
 }
 
 /// Export to Python (in addition to methods in impl blocks marked
