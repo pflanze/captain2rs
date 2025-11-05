@@ -34,6 +34,7 @@ impl<C: PrimInt + Debug + numpy::Element, const D: usize, V> Coo<C, D, V> {
         let sparse = py.import("sparse")?;
         let d = PyDict::new(py);
         d.set_item("fill_value", self.fill_value().clone())?;
+        d.set_item("sorted", self.is_sorted())?;
         sparse.getattr("COO")?.call((coords_py, data_py), Some(&d))
     }
 }
