@@ -1,5 +1,5 @@
 use std::mem::MaybeUninit;
-use std::ops::Range;
+use std::ops::{Mul, Range};
 
 use crate::coo::Coo;
 use ndarray::parallel::prelude::*;
@@ -34,7 +34,7 @@ fn flipped_bounded_range_around(i: u32, length: u32, threshold: u32) -> (Range<u
     )
 }
 
-fn square_i32(x: i32) -> i32 {
+fn square<Number: Mul + Copy>(x: Number) -> Number::Output {
     x * x
 }
 
@@ -108,7 +108,7 @@ pub struct DispersalDistancesThreshold {
 }
 
 fn dist_value(neg_exp_rate: Float, dx: i32, dy: i32) -> Float {
-    (neg_exp_rate * Float::sqrt((square_i32(dx) + square_i32(dy)) as Float)).exp()
+    (neg_exp_rate * Float::sqrt((square(dx) + square(dy)) as Float)).exp()
 }
 
 #[pymethods]
@@ -161,9 +161,10 @@ impl DispersalDistancesThreshold {
         self.cached_at(i, j, n, m)
     }
 
-    // (Ugly: panics for python errors, because ndarray does not have
-    // a `try_map`. But pyo3 converts panics to exceptions, so no big
-    // deal.)
+    // (Unidiomatically, this has to panic for python errors, because
+    // ndarray does not have a `try_map`. But pyo3 converts panics to
+    // exceptions, so it ends up being ~the same as long as panics are
+    // not overridden.)
     #[pyo3(name = "map")]
     fn map_rs<'py>(&self, py: Python<'py>, dot_transform: Py<PyAny>) -> Self {
         self.map(|x| {
@@ -228,6 +229,7 @@ impl DispersalDistancesThreshold {
         }
     }
 
+    /// Initializes/overwrites all values in `c`
     fn apply_to(&self, a: ArrayView2<Float>, mut c: ArrayViewMut2<MaybeUninit<Float>>) {
         let DispersalDistancesThreshold {
             threshold,
@@ -286,6 +288,7 @@ impl DispersalDistancesThreshold {
     fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
         let mut c = Array2::<Float>::uninit(a.dim());
         self.apply_to(a, c.view_mut());
+        // Safe because `.apply_to` overwrites all values in `c`
         unsafe { c.assume_init() }
     }
 }
@@ -420,9 +423,10 @@ fn num_candidates_rs<'py>(
         panic!("n_species {n_species} is higher than the number of subarrays {n} in h")
     }
 
-    let mut res = Array3::<Float>::uninit((n_species, o, p));
+    let mut result = Array3::<Float>::uninit((n_species, o, p));
     let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
-    res.axis_iter_mut(Axis(0))
+    result
+        .axis_iter_mut(Axis(0))
         .into_par_iter()
         .enumerate()
         .for_each(|(i, res)| {
@@ -430,10 +434,14 @@ fn num_candidates_rs<'py>(
                 .apply_to(h.index_axis(Axis(0), i), res);
         });
 
-    PyArray3::from_owned_array(py, unsafe { res.assume_init() })
+    // Safe because we iterate over all of axis 0, then overwrite all
+    // values in the iterated-over matrices via `.apply_to`, leaving
+    // nothing uninitialized.
+    PyArray3::from_owned_array(py, unsafe { result.assume_init() })
 }
 
-/// Export to Python
+/// Export to Python (in addition to methods in impl blocks marked
+/// with `#[pymethods]`)
 #[pymodule]
 mod captain2rs {
     #[pymodule_export]
