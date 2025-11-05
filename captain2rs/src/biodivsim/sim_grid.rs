@@ -386,7 +386,6 @@ fn dispersal_distances_coord(
                     let lat_nm = lat[(n, m)];
                     let lon_nm = lon[(n, m)];
 
-                    // Python logic: if abs(lat[i,j] - lat[n,m]) <= threshold and abs(lon[i,j] - lon[n,m]) <= threshold:
                     let lat_diff = (lat_ij - lat_nm).abs();
                     let lon_diff = (lon_ij - lon_nm).abs();
 
