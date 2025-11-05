@@ -13,6 +13,10 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 type Float = f64;
 
+fn square<Number: Mul + Copy>(x: Number) -> Number::Output {
+    x * x
+}
+
 /// The range of integers before and after `i` by the amount of
 /// `threshold` (exclusive the latter bound), limited to the range
 /// `0..length`.
@@ -32,10 +36,6 @@ fn flipped_bounded_range_around(i: u32, length: u32, threshold: u32) -> (Range<u
         n_min..n_max,
         i >= threshold && (i + threshold + 1) <= length,
     )
-}
-
-fn square<Number: Mul + Copy>(x: Number) -> Number::Output {
-    x * x
 }
 
 // @jit(nopython=True)
@@ -99,6 +99,10 @@ pub fn dispersal_distances_threshold(
     dumping_dist
 }
 
+/// Reimplementation of `dispersal_distances_threshold`, calculating
+/// only a single threshold area and re-using it for all points in
+/// lookups instead of calculating a sparse array with an area for all
+/// input points.
 #[pyclass(frozen)]
 #[derive(Debug)]
 pub struct DispersalDistancesThreshold {
@@ -149,6 +153,8 @@ impl DispersalDistancesThreshold {
         )]
     }
 
+    /// Run both `cached_at` and `precise_at` and assert equivalence
+    /// for testing.
     fn asserting_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
         let val1 = self.precise_at(i, j, n, m);
         let val2 = self.cached_at(i, j, n, m);
@@ -156,6 +162,8 @@ impl DispersalDistancesThreshold {
         val2
     }
 
+    /// Only valid in range of differences as per `self.threshold`,
+    /// may panic otherwise
     #[inline]
     fn at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
         self.cached_at(i, j, n, m)
@@ -176,6 +184,7 @@ impl DispersalDistancesThreshold {
         })
     }
 
+    /// Calculate the equivalent of `einsum("ij,ijnm->nm", a, self)`
     #[pyo3(name = "apply")]
     fn apply_rs<'py>(
         &self,
@@ -229,7 +238,9 @@ impl DispersalDistancesThreshold {
         }
     }
 
-    /// Initializes/overwrites all values in `c`
+    /// Calculate the equivalent of `einsum("ij,ijnm->nm", a, self)`
+    /// and write the result to `c`. Initializes/overwrites all values
+    /// in `c`
     fn apply_to(&self, a: ArrayView2<Float>, mut c: ArrayViewMut2<MaybeUninit<Float>>) {
         let DispersalDistancesThreshold {
             threshold,
@@ -238,6 +249,8 @@ impl DispersalDistancesThreshold {
         } = *self;
 
         let shape = a.dim();
+
+        // Logically, apply the following (where b is the sparse array):
 
         // for p in 0..shape.0 {
         //     for q in 0..shape.1 {
@@ -252,8 +265,11 @@ impl DispersalDistancesThreshold {
 
         for i in 0..dim_i {
             for j in 0..dim_j {
-                let (n_range, n_unclipped) = flipped_bounded_range_around(i, dim_i, threshold);
-                let (m_range, m_unclipped) = flipped_bounded_range_around(j, dim_j, threshold);
+                let (n_range, n_is_unclipped) = flipped_bounded_range_around(i, dim_i, threshold);
+                let (m_range, m_is_unclipped) = flipped_bounded_range_around(j, dim_j, threshold);
+
+                // The calculation we apply, logically, and literally
+                // if there's no optimization:
                 let fallback = || {
                     let mut sum = 0.;
                     for n in n_range.clone() {
@@ -263,7 +279,12 @@ impl DispersalDistancesThreshold {
                     }
                     sum
                 };
-                let sum = if n_unclipped && m_unclipped {
+                // If the threshold area is not clipped by the image
+                // boundaries, use the optimized `self.mult_and_sum`
+                // method (parameterized at compile time by constant
+                // area widths to make the compiler use SIMD
+                // instructions)
+                let sum = if n_is_unclipped && m_is_unclipped {
                     match m_range.len() {
                         2 => self.mult_and_sum::<2>(n_range, m_range.start, &a),
                         4 => self.mult_and_sum::<4>(n_range, m_range.start, &a),
