@@ -4,7 +4,7 @@ from cProfile import Profile
 from pstats import SortKey, Stats
 
 import timeit
-
+import sys
 import numpy as np
 import sparse
 
@@ -79,7 +79,9 @@ def bench_rust_parallel():
 def profiling():
     rust_python = pp_mytime("rust_python", bench_rust_python)
     rust_parallel = pp_mytime("rust_parallel", bench_rust_parallel)
+    sys.stdout.flush()
     print("rust_python == rust_parallel: ", rust_python == rust_parallel)
+    sys.stdout.flush()
     einsum = pp_mytime("einsum", bench_einsum)
     print("einsum / rust_python: ", einsum / rust_python)
     print("einsum == rust_python: ", einsum == rust_python)
