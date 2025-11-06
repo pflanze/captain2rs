@@ -203,9 +203,7 @@ impl DispersalDistancesThreshold {
     #[inline]
     fn mult_and_sum<const M: u32>(
         &self,
-        n_range: Range<u32>,
-        m_start: u32,
-        a: &ArrayView2<Float>,
+        (n_range, m_start, a): (Range<u32>, u32, &ArrayView2<Float>),
     ) -> Float {
         let mut sum = 0.;
         let n_range_start = n_range.start;
@@ -284,17 +282,18 @@ impl DispersalDistancesThreshold {
                 // area widths to make the compiler use SIMD
                 // instructions)
                 let sum = if n_is_unclipped && m_is_unclipped {
+                    let args = (n_range.clone(), m_range.start, &a);
                     match m_range.len() {
-                        2 => self.mult_and_sum::<2>(n_range, m_range.start, &a),
-                        4 => self.mult_and_sum::<4>(n_range, m_range.start, &a),
-                        6 => self.mult_and_sum::<6>(n_range, m_range.start, &a),
-                        8 => self.mult_and_sum::<8>(n_range, m_range.start, &a),
-                        10 => self.mult_and_sum::<10>(n_range, m_range.start, &a),
-                        12 => self.mult_and_sum::<12>(n_range, m_range.start, &a),
-                        14 => self.mult_and_sum::<14>(n_range, m_range.start, &a),
-                        16 => self.mult_and_sum::<16>(n_range, m_range.start, &a),
-                        18 => self.mult_and_sum::<18>(n_range, m_range.start, &a),
-                        20 => self.mult_and_sum::<20>(n_range, m_range.start, &a),
+                        2 => self.mult_and_sum::<2>(args),
+                        4 => self.mult_and_sum::<4>(args),
+                        6 => self.mult_and_sum::<6>(args),
+                        8 => self.mult_and_sum::<8>(args),
+                        10 => self.mult_and_sum::<10>(args),
+                        12 => self.mult_and_sum::<12>(args),
+                        14 => self.mult_and_sum::<14>(args),
+                        16 => self.mult_and_sum::<16>(args),
+                        18 => self.mult_and_sum::<18>(args),
+                        20 => self.mult_and_sum::<20>(args),
                         _ => fallback(),
                     }
                 } else {
