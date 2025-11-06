@@ -5,10 +5,9 @@ use crate::coo::Coo;
 use ndarray::parallel::prelude::*;
 use ndarray::{Array2, Array3, ArrayView2, ArrayViewMut2, Axis};
 use numpy::{
-    pyo3::{self, prelude::*},
+    pyo3::{prelude::*, pyclass},
     PyArray2, PyArray3, PyReadonlyArray,
 };
-use pyo3::pyclass;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 type Float = f64;
@@ -432,54 +431,49 @@ fn dispersal_distances_coord(
     dumping_dist
 }
 
-// --- PyO3 wrapper functions ---
-
-#[pyfunction]
-pub fn dispersal_distances_threshold_test_rs<'py>(
-    py: Python<'py>,
-    length: u32,
-    lambda_0: Float,
-    threshold: u32,
-    test_hack: bool,
-    default: Option<Float>,
-) -> pyo3::PyResult<Bound<'py, PyAny>> {
-    dispersal_distances_threshold(length, lambda_0, threshold, test_hack, default)
-        .to_python_sparse(py)
-}
-
-#[pyfunction]
-pub fn dispersal_distances_threshold_rs<'py>(
-    py: Python<'py>,
-    length: u32,
-    lambda_0: Float,
-    threshold: u32,
-) -> pyo3::PyResult<Bound<'py, PyAny>> {
-    dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
-}
-
-#[pyfunction]
-pub fn dispersal_distances_coord_rs<'py>(
-    py: Python<'py>,
-    length: u32,
-    lambda_0: Float,
-    lat: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
-    lon: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
-    threshold: Float,
-) -> PyResult<Bound<'py, PyAny>> {
-    dispersal_distances_coord(length, lambda_0, lat.as_array(), lon.as_array(), threshold)
-        .to_python_sparse(py)
-}
-
-/// Export to Python (in addition to methods in impl blocks marked
-/// with `#[pymethods]`)
+// --- PyO3 wrapper functions and exports ---
 #[pymodule]
 mod captain2rs {
-    #[pymodule_export]
-    use super::dispersal_distances_coord_rs;
-    #[pymodule_export]
-    use super::dispersal_distances_threshold_rs;
-    #[pymodule_export]
-    use super::dispersal_distances_threshold_test_rs;
+    use numpy::{pyo3::prelude::*, PyReadonlyArray};
+
+    use super::{dispersal_distances_coord, dispersal_distances_threshold, Float};
+
+    #[pyfunction]
+    pub fn dispersal_distances_coord_rs<'py>(
+        py: Python<'py>,
+        length: u32,
+        lambda_0: Float,
+        lat: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
+        lon: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
+        threshold: Float,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        dispersal_distances_coord(length, lambda_0, lat.as_array(), lon.as_array(), threshold)
+            .to_python_sparse(py)
+    }
+
+    #[pyfunction]
+    pub fn dispersal_distances_threshold_rs<'py>(
+        py: Python<'py>,
+        length: u32,
+        lambda_0: Float,
+        threshold: u32,
+    ) -> pyo3::PyResult<Bound<'py, PyAny>> {
+        dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
+    }
+
+    #[pyfunction]
+    pub fn dispersal_distances_threshold_test_rs<'py>(
+        py: Python<'py>,
+        length: u32,
+        lambda_0: Float,
+        threshold: u32,
+        test_hack: bool,
+        default: Option<Float>,
+    ) -> pyo3::PyResult<Bound<'py, PyAny>> {
+        dispersal_distances_threshold(length, lambda_0, threshold, test_hack, default)
+            .to_python_sparse(py)
+    }
+
     #[pymodule_export]
     use super::num_candidates_rs;
     #[pymodule_export]
