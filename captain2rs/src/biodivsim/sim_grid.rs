@@ -462,23 +462,12 @@ pub fn dispersal_distances_coord_rs<'py>(
     py: Python<'py>,
     length: u32,
     lambda_0: Float,
-    // Use PyReadonlyArray to accept a NumPy array from Python safely
-    // ArrayView2<Float> means a 2D array of Float elements
     lat: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
     lon: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
     threshold: Float,
 ) -> PyResult<Bound<'py, PyAny>> {
-    // 1. Convert PyReadonlyArray to ArrayView2 for use in the core Rust function
-    let lat_view = lat.as_array();
-    let lon_view = lon.as_array();
-
-    // 2. Call the core logic
-    let result_coo = dispersal_distances_coord(length, lambda_0, lat_view, lon_view, threshold);
-
-    // 3. Convert the Coo sparse structure back to a Python object
-    // Assuming `to_python_sparse` converts the Coo struct to a compatible sparse format
-    // (e.g., a dictionary of coordinates and values, or a SciPy sparse matrix).
-    result_coo.to_python_sparse(py)
+    dispersal_distances_coord(length, lambda_0, lat.as_array(), lon.as_array(), threshold)
+        .to_python_sparse(py)
 }
 
 /// Export to Python (in addition to methods in impl blocks marked
