@@ -199,7 +199,7 @@ impl DispersalDistancesThreshold {
 }
 
 impl DispersalDistancesThreshold {
-    /// `a.is_standard_layout()` must be true!
+    /// Used internally. `a.is_standard_layout()` must be true!
     #[inline]
     fn mult_and_sum<const M: u32>(
         &self,
@@ -277,10 +277,13 @@ impl DispersalDistancesThreshold {
                     sum
                 };
                 // If the threshold area is not clipped by the image
-                // boundaries, use the optimized `self.mult_and_sum`
-                // method (parameterized at compile time by constant
-                // area widths to make the compiler use SIMD
-                // instructions)
+                // boundaries, instantiate the `self.mult_and_sum`
+                // method for a number of threshold area widths (to
+                // make the compiler use SIMD instructions) and use
+                // the corresponding version if we have one; otherwise
+                // use the fallback. You can add more if you need a
+                // `threshold` larger than 10 (the range len is twice
+                // the threshold).
                 let sum = if n_is_unclipped && m_is_unclipped {
                     let args = (n_range.clone(), m_range.start, &a);
                     match m_range.len() {
