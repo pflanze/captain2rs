@@ -22,6 +22,7 @@ num-traits = "0.2.15"
 #kstring = "1.0.6"
 
 ndarray = { version = "0.15.6", features = ["rayon"] }
+nalgebra = "0.32.2"
 # rand = "0.8.5"
 # rand_distr = "0.4.3"
 # sprs = "=0.11.3"
