@@ -6,7 +6,7 @@ use crate::coo::Coo;
 use ndarray::parallel::prelude::*;
 use ndarray::{
     Array2, Array3, ArrayBase, ArrayView2, ArrayViewMut2, Axis, Ix2, SliceInfo, SliceInfoElem,
-    ViewRepr,
+    ViewRepr, Zip,
 };
 use numpy::{
     pyo3::{prelude::*, pyclass},
@@ -279,7 +279,9 @@ impl DispersalDistancesThreshold {
                         ])
                         .unwrap(),
                     );
-                    a_slice.dot(&self.cache).sum()
+                    Zip::from(a_slice)
+                        .and(&self.cache)
+                        .fold(0.0, |acc, &x, &y| acc + x * y)
                 } else {
                     fallback()
                 };
