@@ -279,7 +279,7 @@ impl DispersalDistancesThreshold {
                         ])
                         .unwrap(),
                     );
-                    (&a_slice * &self.cache).sum()
+                    a_slice.dot(&self.cache).sum()
                 } else {
                     fallback()
                 };
