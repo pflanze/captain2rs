@@ -1,13 +1,9 @@
-use std::fmt::Debug;
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Range};
 
 use crate::coo::Coo;
 use ndarray::parallel::prelude::*;
-use ndarray::{
-    Array2, Array3, ArrayBase, ArrayView2, ArrayViewMut2, Axis, Ix2, SliceInfo, SliceInfoElem,
-    ViewRepr, Zip,
-};
+use ndarray::{Array2, Array3, ArrayView2, ArrayViewMut2, Axis};
 use numpy::{
     pyo3::{prelude::*, pyclass},
     PyArray2, PyArray3, PyReadonlyArray,
@@ -118,17 +114,6 @@ fn dist_value(neg_exp_rate: Float, dx: i32, dy: i32) -> Float {
     (neg_exp_rate * Float::sqrt((square(dx) + square(dy)) as Float)).exp()
 }
 
-/// Convert range components to usize, panic if any don't fit usize
-fn usized<N: TryInto<usize>>(Range { start, end }: Range<N>) -> Range<usize>
-where
-    <N as TryInto<usize>>::Error: Debug,
-{
-    Range {
-        start: start.try_into().expect("fits usize"),
-        end: end.try_into().expect("fits usize"),
-    }
-}
-
 #[pymethods]
 impl DispersalDistancesThreshold {
     #[new]
@@ -214,6 +199,28 @@ impl DispersalDistancesThreshold {
 }
 
 impl DispersalDistancesThreshold {
+    /// Used internally. `a.is_standard_layout()` must be true!
+    #[inline]
+    fn mult_and_sum<const M: u32>(
+        &self,
+        (n_range, m_start, a): (Range<u32>, u32, &ArrayView2<Float>),
+    ) -> Float {
+        let mut sum = 0.;
+        let n_range_start = n_range.start;
+        for n in n_range {
+            let a_row = a.row(n as usize);
+            let a_ptr = &a_row.as_slice().unwrap()[m_start as usize..];
+            assert!(a_ptr.len() >= M as usize);
+            let cache_row = self.cache.row((n - n_range_start) as usize);
+            let cache_ptr = &cache_row.as_slice().unwrap();
+            assert!(cache_ptr.len() >= M as usize);
+            for _m in 0..M {
+                sum += a_ptr[_m as usize] * cache_ptr[_m as usize];
+            }
+        }
+        sum
+    }
+
     fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
         let Self {
             threshold,
@@ -270,18 +277,28 @@ impl DispersalDistancesThreshold {
                     sum
                 };
                 // If the threshold area is not clipped by the image
-                // boundaries, use ndarray to carry out the operation.
+                // boundaries, instantiate the `self.mult_and_sum`
+                // method for a number of threshold area widths (to
+                // make the compiler use SIMD instructions) and use
+                // the corresponding version if we have one; otherwise
+                // use the fallback. You can add more if you need a
+                // `threshold` larger than 10 (the range len is twice
+                // the threshold).
                 let sum = if n_is_unclipped && m_is_unclipped {
-                    let a_slice: ArrayBase<ViewRepr<&Float>, Ix2> = a.slice(
-                        SliceInfo::try_from([
-                            SliceInfoElem::from(usized(n_range.clone())),
-                            SliceInfoElem::from(usized(m_range.clone())),
-                        ])
-                        .unwrap(),
-                    );
-                    Zip::from(a_slice)
-                        .and(&self.cache)
-                        .fold(0.0, |acc, &x, &y| acc + x * y)
+                    let args = (n_range.clone(), m_range.start, &a);
+                    match m_range.len() {
+                        2 => self.mult_and_sum::<2>(args),
+                        4 => self.mult_and_sum::<4>(args),
+                        6 => self.mult_and_sum::<6>(args),
+                        8 => self.mult_and_sum::<8>(args),
+                        10 => self.mult_and_sum::<10>(args),
+                        12 => self.mult_and_sum::<12>(args),
+                        14 => self.mult_and_sum::<14>(args),
+                        16 => self.mult_and_sum::<16>(args),
+                        18 => self.mult_and_sum::<18>(args),
+                        20 => self.mult_and_sum::<20>(args),
+                        _ => fallback(),
+                    }
                 } else {
                     fallback()
                 };
