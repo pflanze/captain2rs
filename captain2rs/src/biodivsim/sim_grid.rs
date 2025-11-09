@@ -219,7 +219,7 @@ impl DispersalDistancesThreshold {
             sum += match M {
                 2 => vals[0] + vals[1],
                 4 => (vals[0] + vals[1]) + (vals[2] + vals[3]),
-                6 => (vals[0] + vals[1]) + (vals[2] + vals[3]) + (vals[4] + vals[5]),
+                6 => (vals[0] + vals[3]) + (vals[1] + vals[4]) + (vals[2] + vals[5]),
                 8 => {
                     ((vals[0] + vals[1]) + (vals[2] + vals[3]))
                         + ((vals[4] + vals[5]) + (vals[6] + vals[7]))
