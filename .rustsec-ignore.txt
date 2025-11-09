@@ -4,5 +4,3 @@ RUSTSEC-2021-0145
 RUSTSEC-2024-0370
 # atty 0.2.14 affected by RUSTSEC-2024-0375 (unmaintained)
 RUSTSEC-2024-0375
-# paste 1.0.15 affected by RUSTSEC-2024-0436 (unmaintained)
-RUSTSEC-2024-0436
