@@ -1,7 +1,9 @@
+use std::fmt::Debug;
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Range};
 
 use crate::coo::Coo;
+use nalgebra::Dyn;
 use ndarray::parallel::prelude::*;
 use ndarray::{Array2, Array3, ArrayView2, ArrayViewMut2, Axis};
 use numpy::{
@@ -199,28 +201,6 @@ impl DispersalDistancesThreshold {
 }
 
 impl DispersalDistancesThreshold {
-    /// Used internally. `a.is_standard_layout()` must be true!
-    #[inline]
-    fn mult_and_sum<const M: u32>(
-        &self,
-        (n_range, m_start, a): (Range<u32>, u32, &ArrayView2<Float>),
-    ) -> Float {
-        let mut sum = 0.;
-        let n_range_start = n_range.start;
-        for n in n_range {
-            let a_row = a.row(n as usize);
-            let a_ptr = &a_row.as_slice().unwrap()[m_start as usize..];
-            assert!(a_ptr.len() >= M as usize);
-            let cache_row = self.cache.row((n - n_range_start) as usize);
-            let cache_ptr = &cache_row.as_slice().unwrap();
-            assert!(cache_ptr.len() >= M as usize);
-            for _m in 0..M {
-                sum += a_ptr[_m as usize] * cache_ptr[_m as usize];
-            }
-        }
-        sum
-    }
-
     fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
         let Self {
             threshold,
@@ -260,6 +240,18 @@ impl DispersalDistancesThreshold {
         assert!(a.is_standard_layout());
         assert!(self.cache.is_standard_layout());
 
+        let a = nalgebra::DMatrixView::from_slice_generic(
+            a.as_slice().unwrap(),
+            Dyn(a.nrows()),
+            Dyn(a.ncols()),
+        );
+
+        let cache = nalgebra::DMatrixView::from_slice_generic(
+            self.cache.as_slice().unwrap(),
+            Dyn(self.cache.nrows()),
+            Dyn(self.cache.ncols()),
+        );
+
         for i in 0..dim_i {
             for j in 0..dim_j {
                 let (n_range, n_is_unclipped) = flipped_bounded_range_around(i, dim_i, threshold);
@@ -271,32 +263,28 @@ impl DispersalDistancesThreshold {
                     let mut sum = 0.;
                     for n in n_range.clone() {
                         for m in m_range.clone() {
-                            sum += a[(n as usize, m as usize)] * self.at(i, j, n, m)
+                            sum += a[(m as usize, n as usize)] * self.at(i, j, n, m)
                         }
                     }
                     sum
                 };
                 // If the threshold area is not clipped by the image
-                // boundaries, instantiate the `self.mult_and_sum`
-                // method for a number of threshold area widths (to
-                // make the compiler use SIMD instructions) and use
-                // the corresponding version if we have one; otherwise
-                // use the fallback. You can add more if you need a
-                // `threshold` larger than 10 (the range len is twice
-                // the threshold).
-                let sum = if n_is_unclipped && m_is_unclipped {
-                    let args = (n_range.clone(), m_range.start, &a);
+                // boundaries, use nalgebra to carry out the operation.
+                let sum: Float = if n_is_unclipped && m_is_unclipped {
+                    let n_start = n_range.start as usize;
+                    let m_start = m_range.start as usize;
                     match m_range.len() {
-                        2 => self.mult_and_sum::<2>(args),
-                        4 => self.mult_and_sum::<4>(args),
-                        6 => self.mult_and_sum::<6>(args),
-                        8 => self.mult_and_sum::<8>(args),
-                        10 => self.mult_and_sum::<10>(args),
-                        12 => self.mult_and_sum::<12>(args),
-                        14 => self.mult_and_sum::<14>(args),
-                        16 => self.mult_and_sum::<16>(args),
-                        18 => self.mult_and_sum::<18>(args),
-                        20 => self.mult_and_sum::<20>(args),
+                        2 => a.fixed_view::<2, 2>(m_start, n_start).dot(&cache),
+                        4 => a.fixed_view::<4, 4>(m_start, n_start).dot(&cache),
+                        6 => a.fixed_view::<6, 6>(m_start, n_start).dot(&cache),
+                        8 => a.fixed_view::<8, 8>(m_start, n_start).dot(&cache),
+                        10 => a.fixed_view::<10, 10>(m_start, n_start).dot(&cache),
+                        12 => a.fixed_view::<12, 12>(m_start, n_start).dot(&cache),
+                        14 => a.fixed_view::<14, 14>(m_start, n_start).dot(&cache),
+                        16 => a.fixed_view::<16, 16>(m_start, n_start).dot(&cache),
+                        18 => a.fixed_view::<18, 18>(m_start, n_start).dot(&cache),
+                        20 => a.fixed_view::<20, 20>(m_start, n_start).dot(&cache),
+
                         _ => fallback(),
                     }
                 } else {
