@@ -9,6 +9,7 @@ use numpy::{
     PyArray2, PyArray3, PyReadonlyArray,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rten_simd::isa::Avx2Isa;
 
 type Float = f64;
 
@@ -201,22 +202,26 @@ impl DispersalDistancesThreshold {
 impl DispersalDistancesThreshold {
     /// Used internally. `a.is_standard_layout()` must be true!
     #[inline]
-    fn dot<const M: u32>(
+    fn dot<const M: usize>(
         &self,
         (n_range, m_start, a): (Range<u32>, u32, &ArrayView2<Float>),
     ) -> Float {
         let mut sum = 0.;
         let n_range_start = n_range.start;
+        let isa = Avx2Isa::new().unwrap();
         for n in n_range {
             let a_row = a.row(n as usize);
             let a_ptr = &a_row.as_slice().unwrap()[m_start as usize..];
-            assert!(a_ptr.len() >= M as usize);
+            assert!(a_ptr.len() >= M);
             let cache_row = self.cache.row((n - n_range_start) as usize);
             let cache_ptr = &cache_row.as_slice().unwrap();
-            assert!(cache_ptr.len() >= M as usize);
-            for _m in 0..M {
-                sum += a_ptr[_m as usize] * cache_ptr[_m as usize];
-            }
+            assert!(cache_ptr.len() >= M);
+            // OH NO, rten_vecmath::Sum is f32 only!
+            let vals: [f32; M] =
+                core::array::from_fn(|_m| (a_ptr[_m as usize] * cache_ptr[_m as usize]) as f32);
+            use rten_simd::SimdOp;
+            use rten_vecmath::Sum;
+            sum += Sum::new(&vals).eval(isa) as f64;
         }
         sum
     }
