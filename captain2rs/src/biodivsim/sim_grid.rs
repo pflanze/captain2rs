@@ -201,7 +201,7 @@ impl DispersalDistancesThreshold {
 impl DispersalDistancesThreshold {
     /// Used internally. `a.is_standard_layout()` must be true!
     #[inline]
-    fn dot<const M: usize>(
+    fn dot<const M: u32>(
         &self,
         (n_range, m_start, a): (Range<u32>, u32, &ArrayView2<Float>),
     ) -> Float {
@@ -210,27 +210,13 @@ impl DispersalDistancesThreshold {
         for n in n_range {
             let a_row = a.row(n as usize);
             let a_ptr = &a_row.as_slice().unwrap()[m_start as usize..];
-            assert!(a_ptr.len() >= M);
+            assert!(a_ptr.len() >= M as usize);
             let cache_row = self.cache.row((n - n_range_start) as usize);
             let cache_ptr = &cache_row.as_slice().unwrap();
-            assert!(cache_ptr.len() >= M);
-            let vals: [f64; M] =
-                core::array::from_fn(|_m| a_ptr[_m as usize] * cache_ptr[_m as usize]);
-            sum += match M {
-                2 => vals[0] + vals[1],
-                4 => (vals[0] + vals[1]) + (vals[2] + vals[3]),
-                6 => (vals[0] + vals[3]) + (vals[1] + vals[4]) + (vals[2] + vals[5]),
-                8 => {
-                    ((vals[0] + vals[1]) + (vals[2] + vals[3]))
-                        + ((vals[4] + vals[5]) + (vals[6] + vals[7]))
-                }
-                10 => {
-                    ((vals[0] + vals[1]) + (vals[2] + vals[3]))
-                        + ((vals[4] + vals[5]) + (vals[6] + vals[7]))
-                        + (vals[8] + vals[9])
-                }
-                _ => unimplemented!(),
-            };
+            assert!(cache_ptr.len() >= M as usize);
+            for _m in 0..M {
+                sum += a_ptr[_m as usize] * cache_ptr[_m as usize];
+            }
         }
         sum
     }
