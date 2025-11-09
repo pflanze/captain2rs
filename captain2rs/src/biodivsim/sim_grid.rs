@@ -201,7 +201,7 @@ impl DispersalDistancesThreshold {
 impl DispersalDistancesThreshold {
     /// Used internally. `a.is_standard_layout()` must be true!
     #[inline]
-    fn mult_and_sum<const M: u32>(
+    fn dot<const M: u32>(
         &self,
         (n_range, m_start, a): (Range<u32>, u32, &ArrayView2<Float>),
     ) -> Float {
@@ -287,16 +287,16 @@ impl DispersalDistancesThreshold {
                 let sum = if n_is_unclipped && m_is_unclipped {
                     let args = (n_range.clone(), m_range.start, &a);
                     match m_range.len() {
-                        2 => self.mult_and_sum::<2>(args),
-                        4 => self.mult_and_sum::<4>(args),
-                        6 => self.mult_and_sum::<6>(args),
-                        8 => self.mult_and_sum::<8>(args),
-                        10 => self.mult_and_sum::<10>(args),
-                        12 => self.mult_and_sum::<12>(args),
-                        14 => self.mult_and_sum::<14>(args),
-                        16 => self.mult_and_sum::<16>(args),
-                        18 => self.mult_and_sum::<18>(args),
-                        20 => self.mult_and_sum::<20>(args),
+                        2 => self.dot::<2>(args),
+                        4 => self.dot::<4>(args),
+                        6 => self.dot::<6>(args),
+                        8 => self.dot::<8>(args),
+                        10 => self.dot::<10>(args),
+                        12 => self.dot::<12>(args),
+                        14 => self.dot::<14>(args),
+                        16 => self.dot::<16>(args),
+                        18 => self.dot::<18>(args),
+                        20 => self.dot::<20>(args),
                         _ => fallback(),
                     }
                 } else {
