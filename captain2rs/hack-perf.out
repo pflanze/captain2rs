@@ -1,8 +1,8 @@
 calculating distances with threshold...
 n_species=12
-t rust=0.655689
+t rust=0.659187
 pp rust: <COO: shape=(800, 800, 800, 800), dtype=float64, nnz=22953681, fill_value=0.0>
-t rust_python=0.091168
+t rust_python=0.411249
 pp rust_python: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -88,7 +88,7 @@ pp rust_python: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.252518
     3.83658002]
   [ 5.4443873   6.64900074  7.86690439 ...  4.5628304   4.10817486
     2.3040251 ]]]
-t rust_parallel=0.014995
+t rust_parallel=0.048753
 pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -223,7 +223,7 @@ rust_python == rust_parallel:  [[[ True  True  True ...  True  True  True]
   [ True  True  True ...  True  True  True]
   [ True  True  True ...  True  True  True]
   [ True  True  True ...  True  True  True]]]
-t einsum=28.637572
+t einsum=28.600438
 pp einsum: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -409,7 +409,7 @@ einsum == rust_python:  [[[False False False ... False  True False]
   [False False False ... False False False]]]
 
 
-t rust_python=0.088250
+t rust_python=0.406633
 pp rust_python: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -495,7 +495,7 @@ pp rust_python: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.252518
     3.83658002]
   [ 5.4443873   6.64900074  7.86690439 ...  4.5628304   4.10817486
     2.3040251 ]]]
-t rust_parallel=0.013704
+t rust_parallel=0.049447
 pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -630,7 +630,7 @@ rust_python == rust_parallel:  [[[ True  True  True ...  True  True  True]
   [ True  True  True ...  True  True  True]
   [ True  True  True ...  True  True  True]
   [ True  True  True ...  True  True  True]]]
-t einsum=28.716476
+t einsum=28.684966
 pp einsum: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -816,30 +816,30 @@ einsum == rust_python:  [[[False False False ... False  True False]
   [False False False ... False False False]]]
 
 
-         41284 function calls (39652 primitive calls) in 28.854 seconds
+         41284 function calls (39652 primitive calls) in 29.175 seconds
 
    Ordered by: internal time
    List reduced from 216 to 15 due to restriction <15>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-       36   11.767    0.327   12.858    0.357 _umath.py:569(_get_func_coords_data)
-       48    4.123    0.086   10.408    0.217 core.py:1284(_sort_indices)
-       60    3.682    0.061    3.682    0.061 common.py:57(linear_loc)
-       36    2.704    0.075   19.097    0.530 _umath.py:457(get_result)
-       12    2.324    0.194    2.324    0.194 {method 'argsort' of 'numpy.ndarray' objects}
-       60    1.031    0.017    1.032    0.017 function_base.py:1324(diff)
-       84    0.885    0.011    0.888    0.011 _utils.py:409(equivalent)
-       12    0.740    0.062    9.351    0.779 _common.py:1303(_einsum_single)
-       12    0.622    0.052    1.681    0.140 core.py:1309(_sum_duplicates)
-       36    0.208    0.006    0.208    0.006 {method 'astype' of 'numpy.ndarray' objects}
-       12    0.150    0.013    0.150    0.013 {method 'reduceat' of 'numpy.ufunc' objects}
-       36    0.102    0.003   19.217    0.534 _umath.py:13(elemwise)
+       36   11.769    0.327   12.855    0.357 _umath.py:569(_get_func_coords_data)
+       48    4.136    0.086   10.440    0.218 core.py:1284(_sort_indices)
+       60    3.687    0.061    3.687    0.061 common.py:57(linear_loc)
+       36    2.644    0.073   19.039    0.529 _umath.py:457(get_result)
+       12    2.337    0.195    2.337    0.195 {method 'argsort' of 'numpy.ndarray' objects}
+       60    1.033    0.017    1.033    0.017 function_base.py:1324(diff)
+       84    0.880    0.010    0.883    0.011 _utils.py:409(equivalent)
+       12    0.738    0.062    9.376    0.781 _common.py:1303(_einsum_single)
+       12    0.621    0.052    1.682    0.140 core.py:1309(_sum_duplicates)
+       12    0.400    0.033    0.400    0.033 {method 'apply' of 'builtins.DispersalDistancesThreshold' objects}
+       36    0.206    0.006    0.206    0.006 {method 'astype' of 'numpy.ndarray' objects}
+       12    0.152    0.013    0.152    0.013 {method 'reduceat' of 'numpy.ufunc' objects}
+       36    0.102    0.003   19.159    0.532 _umath.py:13(elemwise)
       140    0.099    0.001    0.099    0.001 {method 'reduce' of 'numpy.ufunc' objects}
-       12    0.081    0.007    0.081    0.007 {method 'apply' of 'builtins.DispersalDistancesThreshold' objects}
-        1    0.071    0.071   28.716   28.716 performance-check.py:45(bench_einsum)
+        1    0.072    0.072   28.685   28.685 performance-check.py:45(bench_einsum)
 
 
-t rust_parallel=0.018530
+t rust_parallel=0.047572
 pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -925,7 +925,7 @@ pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.2525
     3.83658002]
   [ 5.4443873   6.64900074  7.86690439 ...  4.5628304   4.10817486
     2.3040251 ]]]
-t rust_parallel=0.011960
+t rust_parallel=0.048654
 pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -1011,7 +1011,7 @@ pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.2525
     3.83658002]
   [ 5.4443873   6.64900074  7.86690439 ...  4.5628304   4.10817486
     2.3040251 ]]]
-t rust_parallel=0.012966
+t rust_parallel=0.048687
 pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -1097,7 +1097,7 @@ pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.2525
     3.83658002]
   [ 5.4443873   6.64900074  7.86690439 ...  4.5628304   4.10817486
     2.3040251 ]]]
-t rust_parallel=0.012159
+t rust_parallel=0.049327
 pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
@@ -1183,7 +1183,7 @@ pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.2525
     3.83658002]
   [ 5.4443873   6.64900074  7.86690439 ...  4.5628304   4.10817486
     2.3040251 ]]]
-t rust_parallel=0.011220
+t rust_parallel=0.049619
 pp rust_parallel: [[[ 6.96677912  8.02807957  9.1032952  ...  5.43465769  4.25251815
     3.61097739]
   [ 9.14054261 10.8107915  12.1928162  ...  6.41172633  5.1230888
