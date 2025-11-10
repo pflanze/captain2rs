@@ -28,9 +28,9 @@ fn bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
 /// Same as `bounded_range_around` but does not include the lower
 /// bound, and instead includes the upper bound; also returns whether
 /// the threshold window is unclipped. `threshold` must be >= 1.
-fn flipped_bounded_range_around(i: u32, length: u32, threshold: u32) -> (Range<u32>, bool) {
+fn flipped_bounded_range_around(i: usize, length: usize, threshold: usize) -> (Range<usize>, bool) {
     let n_min = i.saturating_sub(threshold - 1);
-    let n_max = u32::min(length, i + threshold + 1);
+    let n_max = usize::min(length, i + threshold + 1);
     (
         n_min..n_max,
         i >= threshold && (i + threshold + 1) <= length,
@@ -105,7 +105,7 @@ pub fn dispersal_distances_threshold(
 #[pyclass(frozen)]
 #[derive(Debug)]
 pub struct DispersalDistancesThreshold {
-    pub threshold: u32,
+    pub threshold: usize,
     pub neg_exp_rate: Float,
     pub cache: Array2<Float>,
 }
@@ -117,13 +117,13 @@ fn dist_value(neg_exp_rate: Float, dx: i32, dy: i32) -> Float {
 #[pymethods]
 impl DispersalDistancesThreshold {
     #[new]
-    fn new(lambda_0: Float, threshold: u32) -> Self {
+    fn new(lambda_0: Float, threshold: usize) -> Self {
         let neg_exp_rate = -1.0 / lambda_0;
         let length = threshold * 2;
-        let mut cache = Array2::zeros((length as usize, length as usize));
+        let mut cache = Array2::zeros((length, length));
         for i in 0..length {
             for j in 0..length {
-                cache[(i as usize, j as usize)] = dist_value(
+                cache[(i, j)] = dist_value(
                     neg_exp_rate,
                     i as i32 - threshold as i32,
                     j as i32 - threshold as i32,
@@ -138,23 +138,20 @@ impl DispersalDistancesThreshold {
         }
     }
 
-    fn precise_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
+    fn precise_at(&self, i: usize, j: usize, n: usize, m: usize) -> Float {
         dist_value(self.neg_exp_rate, i as i32 - n as i32, j as i32 - m as i32)
     }
 
     /// Only valid in range of differences as per `self.threshold`,
     /// panics otherwise
     #[inline]
-    fn cached_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
-        self.cache[(
-            (self.threshold + i - n) as usize,
-            (self.threshold + j - m) as usize,
-        )]
+    fn cached_at(&self, i: usize, j: usize, n: usize, m: usize) -> Float {
+        self.cache[(self.threshold + i - n, self.threshold + j - m)]
     }
 
     /// Run both `cached_at` and `precise_at` and assert equivalence
     /// for testing.
-    fn asserting_at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
+    fn asserting_at(&self, i: usize, j: usize, n: usize, m: usize) -> Float {
         let val1 = self.precise_at(i, j, n, m);
         let val2 = self.cached_at(i, j, n, m);
         assert_eq!(val1, val2);
@@ -164,7 +161,7 @@ impl DispersalDistancesThreshold {
     /// Only valid in range of differences as per `self.threshold`,
     /// may panic otherwise
     #[inline]
-    fn at(&self, i: u32, j: u32, n: u32, m: u32) -> Float {
+    fn at(&self, i: usize, j: usize, n: usize, m: usize) -> Float {
         self.cached_at(i, j, n, m)
     }
 
@@ -215,24 +212,29 @@ impl DispersalDistancesThreshold {
 
     /// Used internally. `a.is_standard_layout()` must be true!
     #[inline]
-    fn dot<const M: u32>(&self, n_range: Range<u32>, m_start: u32, a: &ArrayView2<Float>) -> Float {
+    fn dot<const M: usize>(
+        &self,
+        n_range: Range<usize>,
+        m_start: usize,
+        a: &ArrayView2<Float>,
+    ) -> Float {
         let mut sum = 0.;
         let n_range_start = n_range.start;
         for n in n_range {
-            let a_row = a.row(n as usize);
-            let a_slice = &a_row.as_slice().unwrap()[m_start as usize..];
-            assert!(a_slice.len() >= M as usize);
-            let cache_row = self.cache.row((n - n_range_start) as usize);
+            let a_row = a.row(n);
+            let a_slice = &a_row.as_slice().unwrap()[m_start..];
+            assert!(a_slice.len() >= M);
+            let cache_row = self.cache.row(n - n_range_start);
             let cache_slice = &cache_row.as_slice().unwrap();
-            assert!(cache_slice.len() >= M as usize);
+            assert!(cache_slice.len() >= M);
             for _m in 0..M {
-                sum += a_slice[_m as usize] * cache_slice[_m as usize];
+                sum += a_slice[_m] * cache_slice[_m];
             }
         }
         sum
     }
 
-    fn convolve<const M: u32>(
+    fn convolve<const M: usize>(
         &self,
         a: ArrayView2<Float>,
         mut c: ArrayViewMut2<MaybeUninit<Float>>,
@@ -251,12 +253,10 @@ impl DispersalDistancesThreshold {
         //     }
         // }
 
-        let shape = a.dim();
-
-        let dim_i = shape.0 as u32;
-        let dim_j = shape.1 as u32;
         assert!(a.is_standard_layout());
         assert!(self.cache.is_standard_layout());
+
+        let (dim_i, dim_j) = a.dim();
 
         for i in 0..dim_i {
             for j in 0..dim_j {
@@ -269,12 +269,12 @@ impl DispersalDistancesThreshold {
                     let mut sum = 0.;
                     for n in n_range {
                         for m in m_range.clone() {
-                            sum += a[(n as usize, m as usize)] * self.at(i, j, n, m)
+                            sum += a[(n, m)] * self.at(i, j, n, m)
                         }
                     }
                     sum
                 };
-                c[(i as usize, j as usize)].write(sum);
+                c[(i, j)].write(sum);
             }
         }
     }
@@ -338,7 +338,7 @@ fn num_candidates_rs<'py>(
     py: Python<'py>,
     n_species: usize,
     lambda_0_init: Float,
-    threshold: u32,
+    threshold: usize,
     lambda_0: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 1]>>,
     h: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 3]>>,
 ) -> Bound<'py, PyArray3<Float>> {
