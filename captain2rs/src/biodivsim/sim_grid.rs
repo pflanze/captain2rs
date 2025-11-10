@@ -199,12 +199,23 @@ impl DispersalDistancesThreshold {
 }
 
 impl DispersalDistancesThreshold {
+    fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
+        let Self {
+            threshold,
+            neg_exp_rate,
+            cache,
+        } = self;
+        let cache = cache.map(|x| dot_transform(*x));
+        Self {
+            threshold: *threshold,
+            neg_exp_rate: *neg_exp_rate,
+            cache,
+        }
+    }
+
     /// Used internally. `a.is_standard_layout()` must be true!
     #[inline]
-    fn dot<const M: u32>(
-        &self,
-        (n_range, m_start, a): (Range<u32>, u32, &ArrayView2<Float>),
-    ) -> Float {
+    fn dot<const M: u32>(&self, n_range: Range<u32>, m_start: u32, a: &ArrayView2<Float>) -> Float {
         let mut sum = 0.;
         let n_range_start = n_range.start;
         for n in n_range {
@@ -221,31 +232,16 @@ impl DispersalDistancesThreshold {
         sum
     }
 
-    fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
-        let Self {
-            threshold,
-            neg_exp_rate,
-            cache,
-        } = self;
-        let cache = cache.map(|x| dot_transform(*x));
-        Self {
-            threshold: *threshold,
-            neg_exp_rate: *neg_exp_rate,
-            cache,
-        }
-    }
-
-    /// Calculate the equivalent of `einsum("ij,ijnm->nm", a, self)`
-    /// and write the result to `c`. Initializes/overwrites all values
-    /// in `c`
-    fn apply_to(&self, a: ArrayView2<Float>, mut c: ArrayViewMut2<MaybeUninit<Float>>) {
+    fn convolve<const M: u32>(
+        &self,
+        a: ArrayView2<Float>,
+        mut c: ArrayViewMut2<MaybeUninit<Float>>,
+    ) {
         let DispersalDistancesThreshold {
             threshold,
             neg_exp_rate: _,
             cache: _,
         } = *self;
-
-        let shape = a.dim();
 
         // Logically, apply the following (where b is the sparse array):
 
@@ -254,6 +250,8 @@ impl DispersalDistancesThreshold {
         //         nm += a[(p, q)] * b.at(p, q);
         //     }
         // }
+
+        let shape = a.dim();
 
         let dim_i = shape.0 as u32;
         let dim_j = shape.1 as u32;
@@ -265,45 +263,51 @@ impl DispersalDistancesThreshold {
                 let (n_range, n_is_unclipped) = flipped_bounded_range_around(i, dim_i, threshold);
                 let (m_range, m_is_unclipped) = flipped_bounded_range_around(j, dim_j, threshold);
 
-                // The calculation we apply, logically, and literally
-                // if there's no optimization:
-                let fallback = || {
+                let sum = if n_is_unclipped && m_is_unclipped {
+                    self.dot::<M>(n_range, m_range.start, &a)
+                } else {
                     let mut sum = 0.;
-                    for n in n_range.clone() {
+                    for n in n_range {
                         for m in m_range.clone() {
                             sum += a[(n as usize, m as usize)] * self.at(i, j, n, m)
                         }
                     }
                     sum
                 };
-                // If the threshold area is not clipped by the image
-                // boundaries, instantiate the `self.dot`
-                // method for a number of threshold area widths (to
-                // make the compiler use SIMD instructions) and use
-                // the corresponding version if we have one; otherwise
-                // use the fallback. You can add more if you need a
-                // `threshold` larger than 10 (the range len is twice
-                // the threshold).
-                let sum = if n_is_unclipped && m_is_unclipped {
-                    let args = (n_range.clone(), m_range.start, &a);
-                    match m_range.len() {
-                        2 => self.dot::<2>(args),
-                        4 => self.dot::<4>(args),
-                        6 => self.dot::<6>(args),
-                        8 => self.dot::<8>(args),
-                        10 => self.dot::<10>(args),
-                        12 => self.dot::<12>(args),
-                        14 => self.dot::<14>(args),
-                        16 => self.dot::<16>(args),
-                        18 => self.dot::<18>(args),
-                        20 => self.dot::<20>(args),
-                        _ => fallback(),
-                    }
-                } else {
-                    fallback()
-                };
                 c[(i as usize, j as usize)].write(sum);
             }
+        }
+    }
+
+    /// Calculate the equivalent of `einsum("ij,ijnm->nm", a, self)`
+    /// and write the result to `c`. Initializes/overwrites all values
+    /// in `c`
+    fn apply_to(&self, a: ArrayView2<Float>, c: ArrayViewMut2<MaybeUninit<Float>>) {
+        match self.threshold {
+            // Specializations of the convolve method that carries out
+            // the application. You can add more specializations if
+            // you need a larger `threshold`. The `M` parameter on the
+            // right is the whole width of a slice, i.e. twice the
+            // threshold.
+            1 => self.convolve::<2>(a, c),
+            2 => self.convolve::<4>(a, c),
+            3 => self.convolve::<6>(a, c),
+            4 => self.convolve::<8>(a, c),
+            5 => self.convolve::<10>(a, c),
+            6 => self.convolve::<12>(a, c),
+            7 => self.convolve::<14>(a, c),
+            8 => self.convolve::<16>(a, c),
+            9 => self.convolve::<18>(a, c),
+            10 => self.convolve::<20>(a, c),
+            11 => self.convolve::<22>(a, c),
+            12 => self.convolve::<24>(a, c),
+            13 => self.convolve::<26>(a, c),
+            14 => self.convolve::<28>(a, c),
+            15 => self.convolve::<30>(a, c),
+            _ => panic!(
+                "don't have a specialization for threshold {}, please edit the source to add one",
+                self.threshold
+            ),
         }
     }
 
