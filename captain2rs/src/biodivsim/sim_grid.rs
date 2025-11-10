@@ -209,13 +209,13 @@ impl DispersalDistancesThreshold {
         let n_range_start = n_range.start;
         for n in n_range {
             let a_row = a.row(n as usize);
-            let a_ptr = &a_row.as_slice().unwrap()[m_start as usize..];
-            assert!(a_ptr.len() >= M as usize);
+            let a_slice = &a_row.as_slice().unwrap()[m_start as usize..];
+            assert!(a_slice.len() >= M as usize);
             let cache_row = self.cache.row((n - n_range_start) as usize);
-            let cache_ptr = &cache_row.as_slice().unwrap();
-            assert!(cache_ptr.len() >= M as usize);
+            let cache_slice = &cache_row.as_slice().unwrap();
+            assert!(cache_slice.len() >= M as usize);
             for _m in 0..M {
-                sum += a_ptr[_m as usize] * cache_ptr[_m as usize];
+                sum += a_slice[_m as usize] * cache_slice[_m as usize];
             }
         }
         sum
