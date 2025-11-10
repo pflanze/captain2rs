@@ -277,7 +277,7 @@ impl DispersalDistancesThreshold {
                     sum
                 };
                 // If the threshold area is not clipped by the image
-                // boundaries, instantiate the `self.mult_and_sum`
+                // boundaries, instantiate the `self.dot`
                 // method for a number of threshold area widths (to
                 // make the compiler use SIMD instructions) and use
                 // the corresponding version if we have one; otherwise
