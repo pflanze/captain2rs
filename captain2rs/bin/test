@@ -1,0 +1,8 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+cat src/biodivsim/sim_grid.rs | perl -wne '
+    if (($a, $b) = m/^\s*(\d+)\s*=>\s*self\.convolve::<(\d+)>/) {
+        $a * 2 == $b or die "$a vs $b not OK"
+    }'
