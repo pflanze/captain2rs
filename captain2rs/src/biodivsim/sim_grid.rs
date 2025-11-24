@@ -1,9 +1,11 @@
 use std::mem::MaybeUninit;
 use std::ops::{Mul, Range};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::coo::Coo;
+use crate::dump::perhaps_dump;
 use ndarray::parallel::prelude::*;
-use ndarray::{Array2, Array3, ArrayView2, ArrayViewMut2, Axis};
+use ndarray::{Array2, Array3, ArrayBase, ArrayView2, ArrayViewMut2, Axis, Dim, ViewRepr};
 use numpy::{
     pyo3::{prelude::*, pyclass},
     PyArray2, PyArray3, PyReadonlyArray,
@@ -319,6 +321,8 @@ impl DispersalDistancesThreshold {
     }
 }
 
+static ITERATION: AtomicU64 = AtomicU64::new(0);
+
 /// Equivalent of
 ///
 ///     NumCandidates = np.array(
@@ -357,6 +361,8 @@ fn num_candidates_rs<'py>(
         panic!("n_species {n_species} is higher than the number of subarrays {n} in `h`")
     }
 
+    let iteration = ITERATION.fetch_add(1, Ordering::SeqCst);
+
     let mut result = Array3::<Float>::uninit((n_species, o, p));
     let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
     result
@@ -364,8 +370,9 @@ fn num_candidates_rs<'py>(
         .into_par_iter()
         .enumerate()
         .for_each(|(i, res)| {
-            ddt.map(|x| x.powf(1. / lambda_0[i]))
-                .apply_to(h.index_axis(Axis(0), i), res);
+            let local_h: ArrayBase<ViewRepr<&f64>, Dim<[usize; 2]>> = h.index_axis(Axis(0), i);
+            perhaps_dump(iteration, i, local_h);
+            ddt.map(|x| x.powf(1. / lambda_0[i])).apply_to(local_h, res);
         });
 
     // Safe because we iterate over all of axis 0, then overwrite all
