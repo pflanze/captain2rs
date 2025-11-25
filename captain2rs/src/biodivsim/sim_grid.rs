@@ -12,7 +12,7 @@ use numpy::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-type Float = f64;
+pub type Float = f64;
 
 fn square<Number: Mul + Copy>(x: Number) -> Number::Output {
     x * x
@@ -338,7 +338,7 @@ static ITERATION: AtomicU64 = AtomicU64::new(0);
 ///          threshold)
 ///
 #[pyfunction]
-fn num_candidates_rs<'py>(
+pub fn num_candidates_rs<'py>(
     py: Python<'py>,
     n_species: usize,
     lambda_0_init: Float,
@@ -392,7 +392,7 @@ fn num_candidates_rs<'py>(
 ///
 /// # Returns
 /// A 4D Coo sparse array of shape (length, length, length, length)
-fn dispersal_distances_coord(
+pub fn dispersal_distances_coord(
     length: u32,
     lambda_0: Float,
     lat: ArrayView2<Float>,
@@ -442,53 +442,4 @@ fn dispersal_distances_coord(
     }
 
     dumping_dist
-}
-
-// --- PyO3 wrapper functions and exports ---
-#[pymodule]
-mod captain2rs {
-    use numpy::{pyo3::prelude::*, PyReadonlyArray};
-
-    use super::{dispersal_distances_coord, dispersal_distances_threshold, Float};
-
-    #[pyfunction]
-    pub fn dispersal_distances_coord_rs<'py>(
-        py: Python<'py>,
-        length: u32,
-        lambda_0: Float,
-        lat: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
-        lon: PyReadonlyArray<'py, Float, ndarray::Dim<[usize; 2]>>,
-        threshold: Float,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        dispersal_distances_coord(length, lambda_0, lat.as_array(), lon.as_array(), threshold)
-            .to_python_sparse(py)
-    }
-
-    #[pyfunction]
-    pub fn dispersal_distances_threshold_rs<'py>(
-        py: Python<'py>,
-        length: u32,
-        lambda_0: Float,
-        threshold: u32,
-    ) -> pyo3::PyResult<Bound<'py, PyAny>> {
-        dispersal_distances_threshold(length, lambda_0, threshold, false, None).to_python_sparse(py)
-    }
-
-    #[pyfunction]
-    pub fn dispersal_distances_threshold_test_rs<'py>(
-        py: Python<'py>,
-        length: u32,
-        lambda_0: Float,
-        threshold: u32,
-        test_hack: bool,
-        default: Option<Float>,
-    ) -> pyo3::PyResult<Bound<'py, PyAny>> {
-        dispersal_distances_threshold(length, lambda_0, threshold, test_hack, default)
-            .to_python_sparse(py)
-    }
-
-    #[pymodule_export]
-    use super::num_candidates_rs;
-    #[pymodule_export]
-    use super::DispersalDistancesThreshold;
 }
