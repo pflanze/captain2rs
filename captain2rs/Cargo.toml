@@ -29,4 +29,4 @@ rayon = "1"
 csv = "1.2.1"
 numpy = "0.24"
 pyo3 = { version = "0.24.2", features = ["extension-module"] }
-png = "0.18.0"
+png = "0.17.16"
