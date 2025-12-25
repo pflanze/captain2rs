@@ -325,17 +325,21 @@ static ITERATION: AtomicU64 = AtomicU64::new(0);
 
 /// Equivalent of
 ///
+/// ```python
 ///     NumCandidates = np.array(
 ///           [sparse.einsum("ij,ijnm->nm", self._h[i],
 ///                          self._dumping_dist ** (1 / self._lambda_0[i])
 ///                    ).todense() for i in range(self._n_species)])
+/// ```
 ///
 /// if `self._dumping_dist` is coming from
 ///
+/// ```python
 ///      dispersal_distances_threshold_rs(
 ///          self._h[i].shape[0],
 ///          lambda_0_init,
 ///          threshold)
+/// ```
 ///
 #[pyfunction]
 pub fn num_candidates_rs<'py>(
