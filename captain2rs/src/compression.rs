@@ -375,7 +375,7 @@ mod tests {
     use rand::Rng;
     use rand_distr::Weibull;
 
-    use crate::timing::show_current_timing;
+    use crate::{dump::perhaps_dump, timing::show_current_timing};
 
     use super::*;
 
@@ -419,21 +419,21 @@ mod tests {
     fn t_performance() -> Result<()> {
         let timing = show_current_timing(true, None, "rng");
 
-        let dist = Weibull::new(1., 10.).unwrap();
+        let dist = Weibull::new(1., 7.).unwrap();
         let mut rng = rand::thread_rng();
         let mut get_coord = |max_excl: usize| {
             let v = rng.sample(&dist);
-            let xraw = (max_excl as f64 * v).abs() as usize / 2;
+            let xraw = (max_excl as f64 * v).abs() as isize - (max_excl as isize / 2);
             // dbg!((v, max, xraw));
-            xraw.min(max_excl - 1)
+            xraw.min(max_excl as isize - 1).abs() as usize
         };
 
         let mut rng = rand::thread_rng();
         let mut ar = Array2::<f32>::zeros((800, 1000));
-        for _ in 0..(100 * 1000) {
+        for _ in 0..(2800 * 1000) {
             let a = get_coord(800);
             let b = get_coord(1000);
-            ar[(a, b)] = rng.gen_range((1.)..(100.));
+            ar[(a, b)] = rng.gen_range((1.)..(50.));
         }
         // dbg!(&ar);
 
@@ -452,6 +452,8 @@ mod tests {
         show_current_timing(true, timing, "end");
 
         dbg!(c.stats());
+
+        perhaps_dump(1, 1, dec.view());
 
         // panic!();
 
