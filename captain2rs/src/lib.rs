@@ -2,6 +2,7 @@ pub mod biodivsim;
 pub mod coo;
 pub mod coo_numpy;
 pub mod dump;
+pub mod timing;
 
 use numpy::pyo3::prelude::*;
 
