@@ -443,11 +443,14 @@ mod tests {
             xraw.min(max_excl as isize - 1).abs() as usize
         };
 
+        let width = 1000;
+        let height = 800;
+
         let mut rng = rand::thread_rng();
-        let mut ar = Array2::<f32>::zeros((800, 1000));
-        for _ in 0..(2800 * 1000) {
-            let a = get_coord(800);
-            let b = get_coord(1000);
+        let mut ar = Array2::<f32>::zeros((height, width));
+        for _ in 0..(2800 * width) {
+            let a = get_coord(height);
+            let b = get_coord(width);
             ar[(a, b)] = rng.gen_range((1.)..(50.));
         }
         // dbg!(&ar);
@@ -463,6 +466,16 @@ mod tests {
         let timing = show_current_timing(true, timing, "verify");
 
         assert_eq!(&ar, &dec);
+
+        let timing = show_current_timing(true, timing, "streaming decompression");
+
+        {
+            let mut row = Vec::with_capacity(width);
+            row.resize(width, 0.);
+            for i in 0..height {
+                c.mut_slice_row(i, 0., &mut row);
+            }
+        }
 
         show_current_timing(true, timing, "end");
 
