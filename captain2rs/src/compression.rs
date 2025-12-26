@@ -106,6 +106,13 @@ impl Compressed2Metadata {
         let (height, width) = self.dim();
         height * width
     }
+
+    /// How many bytes of data this instance uses (malloc overheads not included)
+    pub fn stats_bytes(&self) -> usize {
+        size_of::<Self>()
+            + self.strides.len() * size_of::<Stride>()
+            + self.row_index.len() * size_of::<StridesRowIndex>()
+    }
 }
 
 #[derive(Debug)]
@@ -120,6 +127,13 @@ pub enum Compressed2Error {
     TooWide,
     #[error("given matrix has too many points, must not exceed {}", u32::MAX)]
     TooManyPoints,
+}
+
+#[derive(Debug)]
+pub struct CompressedStats {
+    pub metadata_bytes_shareable: usize,
+    pub metadata_strong_ref_count: usize,
+    pub data_bytes: usize,
 }
 
 impl<T> Compressed2<T> {
@@ -189,6 +203,19 @@ impl<T> Compressed2<T> {
             metadata: metadata.into(),
             data: data.into(),
         })
+    }
+
+    /// How many bytes of data this instance uses (malloc overheads
+    /// not included). Metadata can be shared between multiple
+    /// instances, thus its `metadata_bytes_shareable` value needs to
+    /// be divided by `metadata_strong_ref_count` to get the relevant
+    /// cost.
+    pub fn stats(&self) -> CompressedStats {
+        CompressedStats {
+            metadata_bytes_shareable: self.metadata.stats_bytes(),
+            metadata_strong_ref_count: Arc::strong_count(&self.metadata),
+            data_bytes: self.data.len() * size_of::<T>(),
+        }
     }
 
     pub fn shape(&self) -> &[usize] {
@@ -423,6 +450,8 @@ mod tests {
         assert_eq!(&ar, &dec);
 
         show_current_timing(true, timing, "end");
+
+        dbg!(c.stats());
 
         // panic!();
 
