@@ -394,11 +394,11 @@ mod tests {
 
         let dist = Weibull::new(1., 10.).unwrap();
         let mut rng = rand::thread_rng();
-        let mut get_coord = |max: usize| {
+        let mut get_coord = |max_excl: usize| {
             let v = rng.sample(&dist);
-            let xraw = (max as f64 * v) as usize / 2;
+            let xraw = (max_excl as f64 * v).abs() as usize / 2;
             // dbg!((v, max, xraw));
-            xraw.min(max)
+            xraw.min(max_excl - 1)
         };
 
         let mut rng = rand::thread_rng();
