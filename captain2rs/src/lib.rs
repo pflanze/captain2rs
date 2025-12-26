@@ -1,4 +1,5 @@
 pub mod biodivsim;
+pub mod compression;
 pub mod coo;
 pub mod coo_numpy;
 pub mod dump;
