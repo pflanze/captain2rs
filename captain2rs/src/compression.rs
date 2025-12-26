@@ -246,16 +246,31 @@ impl<T> Compressed2<T> {
     /// Panics for out of bounds `row_i` or invalid sizes of
     /// `row`. Returns the same reference as `row` but with now
     /// initialized type.
-    pub fn mut_slice_row(&self, row_i: usize, empty_val: T, row: &mut [MaybeUninit<T>]) -> &mut [T]
+    #[inline]
+    pub fn mut_slice_row_uninit(
+        &self,
+        row_i: usize,
+        empty_val: T,
+        row: &mut [MaybeUninit<T>],
+    ) -> &mut [T]
     where
         T: Copy,
     {
-        assert_eq!(row.len(), self.row_len());
         let row: &mut [T] = unsafe {
             // Safe because we're going to fill it completely, and we
             // are not reading from it.
             transmute(row)
         };
+        self.mut_slice_row(row_i, empty_val, row)
+    }
+
+    /// Same as `mut_slice_row_uninit` but for already-initialized
+    /// slices. Overwrites the slice completely.
+    pub fn mut_slice_row<'a>(&self, row_i: usize, empty_val: T, row: &'a mut [T]) -> &'a mut [T]
+    where
+        T: Copy,
+    {
+        assert_eq!(row.len(), self.row_len());
         let StridesRowIndex {
             strides_start_i,
             strides_len,
@@ -353,7 +368,7 @@ impl<T> Compressed2<T> {
     {
         let mut vs: Box<[MaybeUninit<T>]> = Box::new_uninit_slice(self.num_values());
         for row_i in 0..self.height() {
-            self.mut_slice_row(
+            self.mut_slice_row_uninit(
                 row_i,
                 empty_val,
                 &mut vs[row_i * self.width()..(row_i + 1) * self.width()],
