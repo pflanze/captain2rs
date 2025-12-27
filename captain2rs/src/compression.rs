@@ -385,7 +385,7 @@ impl<T> Compressed2<T> {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
+    use anyhow::{anyhow, Result};
     use numpy::array;
     use rand::Rng;
     use rand_distr::Weibull;
@@ -459,33 +459,63 @@ mod tests {
         }
         // dbg!(&ar);
 
-        let timing = show_current_timing(true, timing, "compress".into());
+        show_current_timing(true, timing, "END".into());
 
-        let c = Compressed2::from_view(ar.view(), |x| x == 0.)?;
+        let ar = Arc::new(ar);
 
-        let timing = show_current_timing(true, timing, "decompress".into());
+        let run_bench = move |run_no: u64, i: usize| -> Result<Array2<f32>> {
+            let timing = show_current_timing(true, None, format!("{run_no}/{i}: compress").into());
 
-        let dec = c.decompress(0.);
+            let c = Compressed2::from_view(ar.view(), |x| x == 0.)?;
 
-        let timing = show_current_timing(true, timing, "verify".into());
+            let timing =
+                show_current_timing(true, timing, format!("{run_no}/{i}: decompress").into());
 
-        assert_eq!(&ar, &dec);
+            let dec = c.decompress(0.);
 
-        let timing = show_current_timing(true, timing, "streaming decompression".into());
+            let timing = show_current_timing(true, timing, format!("{run_no}/{i}: verify").into());
 
-        {
-            let mut row = Vec::with_capacity(width);
-            row.resize(width, 0.);
-            for i in 0..height {
-                c.mut_slice_row(i, 0., &mut row);
+            assert_eq!(&*ar, &dec);
+
+            let timing = show_current_timing(
+                true,
+                timing,
+                format!("{run_no}/{i}: streaming decompression").into(),
+            );
+
+            {
+                let mut row = Vec::with_capacity(width);
+                row.resize(width, 0.);
+                for i in 0..height {
+                    c.mut_slice_row(i, 0., &mut row);
+                }
             }
-        }
 
             show_current_timing(true, timing, "end".into());
 
-        dbg!(c.stats());
+            dbg!((i, c.stats()));
 
-        perhaps_dump(1, 1, dec.view());
+            Ok(dec)
+        };
+
+        let dec = run_bench(0, 0)?;
+        perhaps_dump(0, 0, dec.view());
+
+        let threads: Vec<_> = (1..32)
+            .map(|i| {
+                let run_bench = run_bench.clone();
+                std::thread::spawn(move || -> Result<()> {
+                    for j in 1..100 {
+                        run_bench(i, j)?;
+                    }
+                    Ok(())
+                })
+            })
+            .collect();
+
+        for thread in threads {
+            thread.join().map_err(|e| anyhow!("thread join: {e:?}"))??;
+        }
 
         // panic!();
 
