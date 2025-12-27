@@ -449,9 +449,13 @@ mod tests {
         let mut rng = rand::thread_rng();
         let mut ar = Array2::<f32>::zeros((height, width));
         for _ in 0..(2800 * width) {
-            let a = get_coord(height);
-            let b = get_coord(width);
-            ar[(a, b)] = rng.gen_range((1.)..(50.));
+            let a = get_coord(height - 1);
+            let b = get_coord(width - 1);
+            let lum = rng.gen_range((20.)..(25.));
+            ar[(a, b)] = lum;
+            ar[(a + 1, b)] = lum;
+            ar[(a, b + 1)] = lum;
+            ar[(a + 1, b + 1)] = lum;
         }
         // dbg!(&ar);
 
