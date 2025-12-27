@@ -5,7 +5,11 @@ pub mod coo_numpy;
 pub mod dump;
 pub mod timing;
 
+use mimalloc::MiMalloc;
 use numpy::pyo3::prelude::*;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[pymodule]
 mod captain2rs {
