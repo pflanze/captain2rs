@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn t_performance() -> Result<()> {
-        let timing = show_current_timing(true, None, "rng");
+        let timing = show_current_timing(true, None, "rng".into());
 
         let dist = Weibull::new(1., 7.).unwrap();
         let mut rng = rand::thread_rng();
@@ -459,19 +459,19 @@ mod tests {
         }
         // dbg!(&ar);
 
-        let timing = show_current_timing(true, timing, "compress");
+        let timing = show_current_timing(true, timing, "compress".into());
 
         let c = Compressed2::from_view(ar.view(), |x| x == 0.)?;
 
-        let timing = show_current_timing(true, timing, "decompress");
+        let timing = show_current_timing(true, timing, "decompress".into());
 
         let dec = c.decompress(0.);
 
-        let timing = show_current_timing(true, timing, "verify");
+        let timing = show_current_timing(true, timing, "verify".into());
 
         assert_eq!(&ar, &dec);
 
-        let timing = show_current_timing(true, timing, "streaming decompression");
+        let timing = show_current_timing(true, timing, "streaming decompression".into());
 
         {
             let mut row = Vec::with_capacity(width);
@@ -481,7 +481,7 @@ mod tests {
             }
         }
 
-        show_current_timing(true, timing, "end");
+            show_current_timing(true, timing, "end".into());
 
         dbg!(c.stats());
 
