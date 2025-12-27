@@ -18,6 +18,7 @@ pub fn show_current_timing(
                 .expect("always increasing");
             eprintln!("timing: {}: {} s", last_timing.span_name, dur.as_secs_f64());
         }
+        let now = SystemTime::now();
         Some(Timing { now, span_name })
     } else {
         None
