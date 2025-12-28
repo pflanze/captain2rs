@@ -1,9 +1,5 @@
 use std::sync::Arc;
 
-pub fn arc<T>(v: &Arc<T>) -> Arc<T> {
-    v.clone()
-}
-
 pub trait CloneArc {
     fn clone_arc(&self) -> Self;
 }
