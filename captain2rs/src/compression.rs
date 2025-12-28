@@ -392,7 +392,7 @@ mod tests {
     use rand::Rng;
     use rand_distr::Weibull;
 
-    use crate::{dump::perhaps_dump, timing::show_current_timing};
+    use crate::{clone_arc, dump::perhaps_dump, timing::show_current_timing};
 
     use super::*;
 
@@ -505,7 +505,7 @@ mod tests {
 
         let threads: Vec<_> = (1..32)
             .map(|i| {
-                let run_bench = run_bench.clone();
+                clone_arc!(run_bench);
                 std::thread::spawn(move || -> Result<()> {
                     for j in 1..100 {
                         run_bench(i, j)?;
