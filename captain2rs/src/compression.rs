@@ -393,6 +393,53 @@ impl<T> Compressed2<T> {
         .into();
         Array2::from_shape_vec(self.dim(), vec).expect("everything should match up")
     }
+
+    /// Overwrite row with index `row_i` with the data in `row`, which
+    /// is the uncompressed form of that row. The data from the pixels
+    /// that are non-empty is copied. Emptiness is decided as per
+    /// construction time, i.e. compression (or the 'mask' for empty
+    /// points) does not change; points that were empty when
+    /// constructing the metadata are simply skipped here, regardless
+    /// of value. Panics if `row.len()` does not match the width of
+    /// the matrix.
+    pub fn write_row_uncompressed(&mut self, row_i: usize, row: &[T])
+    where
+        T: Copy,
+    {
+        assert_eq!(row.len(), self.row_len());
+        let StridesRowIndex {
+            strides_start_i,
+            strides_len,
+            data_start_i,
+        } = &self.metadata.row_index[row_i];
+        let strides = {
+            let (i, len) = (*strides_start_i as usize, *strides_len as usize);
+            &self.metadata.strides[i..(i + len)]
+        };
+        let mut data_i = *data_start_i;
+        let data = self.data.as_slice_mut().expect("1D always succeeds");
+        let mut col_i = 0;
+        for Stride {
+            count_empty,
+            count_data,
+        } in strides
+        {
+            {
+                let count_empty = *count_empty as usize;
+                col_i += count_empty;
+            }
+            {
+                let data_len = *count_data as usize;
+
+                let col_i2 = col_i + data_len;
+                let row_sl = &row[col_i..col_i2];
+                let data_sl = &mut data[data_i..(data_i + data_len)];
+                data_sl.copy_from_slice(row_sl);
+                col_i = col_i2;
+                data_i += data_len;
+            }
+        }
+    }
 }
 
 use ndarray::{LinalgScalar, ScalarOperand};
@@ -487,7 +534,7 @@ mod tests {
 
     use super::*;
 
-    fn test_correctness(a: Array2<i32>, height: usize) -> Result<()> {
+    fn test_correctness(a: Array2<i32>, height: usize) -> Result<Compressed2<i32>> {
         dbg!(&a);
         let c = Compressed2::from_view(a.view(), |x| x == 0)?;
         for (row_a, row_c) in a.rows().into_iter().zip(c.rows(0)) {
@@ -498,7 +545,7 @@ mod tests {
         assert_eq!(c.width(), a.row(0).dim());
         dbg!(&c);
         assert_eq!(&a, &c.decompress(0));
-        Ok(())
+        Ok(c)
     }
 
     #[test]
@@ -512,13 +559,27 @@ mod tests {
         test_correctness(a, 4)?;
 
         let a = array![[10, 11, 0, 14],];
-        test_correctness(a, 1)?;
+        let mut c = test_correctness(a, 1)?;
+        let mut r0 = c.row(0, 0);
+        r0[1] += 1;
+        r0[2] = 5;
+        r0[3] = -5;
+        assert_eq!(*r0, [10, 12, 5, -5]);
+        assert_eq!(c.decompress(0), array![[10, 11, 0, 14],]);
+        c.write_row_uncompressed(0, &*r0);
+        assert_eq!(c.decompress(0), array![[10, 12, 0, -5],]);
 
         let a = array![[10], [0], [3],];
         test_correctness(a, 3)?;
 
         let a = array![[10, 11], [0, 0], [3, 0],];
-        test_correctness(a, 3)?;
+        let mut c = test_correctness(a, 3)?;
+        c.write_row_uncompressed(0, &[4, 14]);
+        assert_eq!(c.decompress(0), array![[4, 14], [0, 0], [3, 0],]);
+        c.write_row_uncompressed(2, &[16, 17]);
+        c.write_row_uncompressed(1, &[15, 114]);
+        c.write_row_uncompressed(0, &[5, 14]);
+        assert_eq!(c.decompress(0), array![[5, 14], [0, 0], [16, 0],]);
 
         Ok(())
     }
