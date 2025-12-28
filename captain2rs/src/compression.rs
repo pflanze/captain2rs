@@ -10,7 +10,7 @@ use std::{
     sync::Arc,
 };
 
-use ndarray::{Array2, ArrayView2};
+use ndarray::{Array1, Array2, ArrayView2};
 use num_traits::Zero;
 
 type Count = u16;
@@ -118,7 +118,7 @@ impl Compressed2Metadata {
 #[derive(Debug)]
 pub struct Compressed2<T> {
     metadata: Arc<Compressed2Metadata>,
-    data: Box<[T]>,
+    data: Array1<T>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -297,10 +297,11 @@ impl<T> Compressed2<T> {
             }
             {
                 let data_len = *count_data as usize;
+                let data = self.data.as_slice().expect("1D always succeeds");
                 if data_len > 0 {
                     let col_i2 = col_i + data_len;
                     let row_sl = &mut row[col_i..col_i2];
-                    let data_sl = &self.data[data_i..(data_i + data_len)];
+                    let data_sl = &data[data_i..(data_i + data_len)];
                     row_sl.copy_from_slice(data_sl);
                     col_i = col_i2;
                     data_i += data_len;
@@ -339,7 +340,8 @@ impl<T> Compressed2<T> {
             }
             {
                 let data_len = *count_data as usize;
-                let sl = &self.data[data_i..(data_i + data_len)];
+                let data = self.data.as_slice().expect("1D always succeeds");
+                let sl = &data[data_i..(data_i + data_len)];
                 row.extend_from_slice(sl);
                 data_i += data_len;
             }
