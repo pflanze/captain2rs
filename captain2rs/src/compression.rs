@@ -13,9 +13,11 @@ use std::{
 use ndarray::{Array1, Array2, ArrayView2};
 use num_traits::Zero;
 
+use crate::clone_arc;
+
 type Count = u16;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Stride {
     count_empty: Count,
     count_data: Count,
@@ -78,6 +80,14 @@ pub struct Compressed2Metadata {
     row_index: Box<[StridesRowIndex]>,
 }
 
+impl PartialEq for Compressed2Metadata {
+    fn eq(&self, other: &Self) -> bool {
+        self.shape == other.shape && self.strides == other.strides
+    }
+}
+
+impl Eq for Compressed2Metadata {}
+
 impl Compressed2Metadata {
     pub fn shape(&self) -> &[usize] {
         &self.shape
@@ -115,7 +125,7 @@ impl Compressed2Metadata {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Compressed2<T> {
     metadata: Arc<Compressed2Metadata>,
     data: Array1<T>,
@@ -385,6 +395,87 @@ impl<T> Compressed2<T> {
     }
 }
 
+use ndarray::{LinalgScalar, ScalarOperand};
+
+macro_rules! def_array_binop {
+    { $Op:tt, $method:tt, $op:tt } => {
+        use std::ops::$Op;
+
+        // With itself
+
+        impl<T: LinalgScalar> $Op for &Compressed2<T> {
+            type Output = Compressed2<T>;
+
+            fn $method(self, rhs: Self) -> Self::Output {
+                let Compressed2 { metadata, data } = self;
+                let data = data $op &rhs.data;
+                clone_arc!(metadata);
+                Compressed2 { metadata, data }
+            }
+        }
+        impl<T: LinalgScalar> $Op for Compressed2<T> {
+            type Output = Compressed2<T>;
+
+            fn $method(self, rhs: Self) -> Self::Output {
+                let Compressed2 { metadata, data } = self;
+                let data = data $op rhs.data;
+                Compressed2 { metadata, data }
+            }
+        }
+        impl<T: LinalgScalar> $Op<&Compressed2<T>> for Compressed2<T> {
+            type Output = Compressed2<T>;
+
+            fn $method(self, rhs: &Compressed2<T>) -> Self::Output {
+                let Compressed2 { metadata, data } = self;
+                let data = data $op &rhs.data;
+                Compressed2 { metadata, data }
+            }
+        }
+        impl<T: LinalgScalar> $Op<Compressed2<T>> for &Compressed2<T> {
+            type Output = Compressed2<T>;
+
+            fn $method(self, rhs: Compressed2<T>) -> Self::Output {
+                let Compressed2 { metadata: _, data } = self;
+                let data = data $op rhs.data;
+                Compressed2 { metadata: rhs.metadata, data }
+            }
+        }
+
+        // Any rhs for which $Op is implemented
+
+        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for &Compressed2<T>
+        where
+            for<'a> &'a Array1<T>: $Op<T2, Output = Array1<T>>,
+        {
+            type Output = Compressed2<T>;
+
+            fn $method(self, rhs: T2) -> Self::Output {
+                let Compressed2 { metadata, data } = self;
+                let data = data $op rhs;
+                clone_arc!(metadata);
+                Compressed2 { metadata, data }
+            }
+        }
+        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for Compressed2<T>
+        where
+            Array1<T>: $Op<T2, Output = Array1<T>>,
+        {
+            type Output = Compressed2<T>;
+
+            fn $method(self, rhs: T2) -> Self::Output {
+                let Compressed2 { metadata, data } = self;
+                let data = data $op rhs;
+                Compressed2 { metadata, data }
+            }
+        }
+    }
+}
+
+def_array_binop! {Add, add, +}
+def_array_binop! {Sub, sub, -}
+def_array_binop! {Mul, mul, *}
+def_array_binop! {Div, div, /}
+
 #[cfg(test)]
 mod tests {
     use anyhow::{anyhow, Result};
@@ -392,7 +483,7 @@ mod tests {
     use rand::Rng;
     use rand_distr::Weibull;
 
-    use crate::{clone_arc, dump::perhaps_dump, timing::show_current_timing};
+    use crate::{dump::perhaps_dump, timing::show_current_timing};
 
     use super::*;
 
@@ -460,24 +551,26 @@ mod tests {
             ar[(a + 1, b + 1)] = lum;
         }
         // dbg!(&ar);
+        perhaps_dump(0, 0, ar.view());
 
         show_current_timing(true, timing, "END".into());
 
-        let ar = Arc::new(ar);
-
-        let run_bench = move |run_no: u64, i: usize| -> Result<Array2<f32>> {
-            let timing = show_current_timing(true, None, format!("{run_no}/{i}: compress").into());
-
-            let c = Compressed2::from_view(ar.view(), |x| x == 0.)?;
-
+        // Runs one decompression, compression and streaming
+        // decompression
+        let run_bench = move |c: &Compressed2<f32>, run_no: u64, i: usize| -> Result<()> {
             let timing =
-                show_current_timing(true, timing, format!("{run_no}/{i}: decompress").into());
+                show_current_timing(true, None, format!("{run_no}/{i}: decompress").into());
 
             let dec = c.decompress(0.);
 
+            let timing =
+                show_current_timing(true, timing, format!("{run_no}/{i}: compress").into());
+
+            let c2 = Compressed2::from_view(dec.view(), |x| x == 0.)?;
+
             let timing = show_current_timing(true, timing, format!("{run_no}/{i}: verify").into());
 
-            assert_eq!(&*ar, &dec);
+            assert_eq!(c, &c2);
 
             let timing = show_current_timing(
                 true,
@@ -497,18 +590,22 @@ mod tests {
 
             dbg!((i, c.stats()));
 
-            Ok(dec)
+            Ok(())
         };
 
-        let dec = run_bench(0, 0)?;
-        perhaps_dump(0, 0, dec.view());
+        let c = Compressed2::from_view(ar.view(), |x| x == 0.)?;
+        {
+            let dec = c.decompress(0.);
+            assert_eq!(ar, dec);
+        }
 
         let threads: Vec<_> = (1..32)
             .map(|i| {
-                clone_arc!(run_bench);
+                let mut c = c.clone();
                 std::thread::spawn(move || -> Result<()> {
                     for j in 1..100 {
-                        run_bench(i, j)?;
+                        run_bench(&c, i, j)?;
+                        c = c * 1.01234;
                     }
                     Ok(())
                 })
