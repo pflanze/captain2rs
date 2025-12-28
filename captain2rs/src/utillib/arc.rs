@@ -9,3 +9,11 @@ impl<T: ?Sized> CloneArc for Arc<T> {
         self.clone()
     }
 }
+
+#[macro_export]
+macro_rules! clone_arc {
+    { $id:ident } => {
+        use $crate::utillib::arc::CloneArc;
+        let $id = $id.clone_arc();
+    }
+}
