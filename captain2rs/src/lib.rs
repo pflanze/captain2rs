@@ -4,6 +4,7 @@ pub mod coo;
 pub mod coo_numpy;
 pub mod dump;
 pub mod timing;
+pub mod utillib;
 
 use mimalloc::MiMalloc;
 use numpy::pyo3::prelude::*;
