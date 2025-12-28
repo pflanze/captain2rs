@@ -291,6 +291,7 @@ impl<T> Compressed2<T> {
             &self.metadata.strides[i..(i + len)]
         };
         let mut data_i = *data_start_i;
+        let data = self.data.as_slice().expect("1D always succeeds");
         let mut col_i = 0;
         for Stride {
             count_empty,
@@ -307,7 +308,6 @@ impl<T> Compressed2<T> {
             }
             {
                 let data_len = *count_data as usize;
-                let data = self.data.as_slice().expect("1D always succeeds");
                 if data_len > 0 {
                     let col_i2 = col_i + data_len;
                     let row_sl = &mut row[col_i..col_i2];
@@ -336,6 +336,7 @@ impl<T> Compressed2<T> {
             let (i, len) = (*strides_start_i as usize, *strides_len as usize);
             &self.metadata.strides[i..(i + len)]
         };
+        let data = self.data.as_slice().expect("1D always succeeds");
         let mut data_i = *data_start_i;
         for Stride {
             count_empty,
@@ -350,7 +351,6 @@ impl<T> Compressed2<T> {
             }
             {
                 let data_len = *count_data as usize;
-                let data = self.data.as_slice().expect("1D always succeeds");
                 let sl = &data[data_i..(data_i + data_len)];
                 row.extend_from_slice(sl);
                 data_i += data_len;
