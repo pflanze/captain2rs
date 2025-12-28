@@ -16,8 +16,9 @@ static GLOBAL: MiMalloc = MiMalloc;
 mod captain2rs {
     use numpy::{pyo3::prelude::*, PyReadonlyArray};
 
-    use super::biodivsim::sim_grid::{
-        dispersal_distances_coord, dispersal_distances_threshold, Float,
+    use crate::biodivsim::{
+        sim_grid::Float,
+        sim_grid_original::{dispersal_distances_coord, dispersal_distances_threshold},
     };
 
     #[pyfunction]
