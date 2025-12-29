@@ -154,6 +154,10 @@ pub enum SparseError {
         TotalCount::MAX
     )]
     TooManyPoints,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum SparseCheckError {
     #[error("given mask and data array do not agree on the total number of data points")]
     NonMatchingDataCount,
 }
@@ -166,10 +170,13 @@ pub struct SparseStats {
 }
 
 impl<T> Sparse<T> {
-    pub fn from_mask_and_data(mask: Arc<SparseMask>, data: Array1<T>) -> Result<Self, SparseError> {
+    pub fn from_mask_and_data(
+        mask: Arc<SparseMask>,
+        data: Array1<T>,
+    ) -> Result<Self, SparseCheckError> {
         let expected = mask.total_count_data() as usize;
         if expected != data.len() {
-            return Err(SparseError::NonMatchingDataCount);
+            return Err(SparseCheckError::NonMatchingDataCount);
         }
         Ok(Self { mask, data })
     }
