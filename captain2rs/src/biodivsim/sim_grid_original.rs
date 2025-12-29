@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use ndarray::ArrayView2;
 
-use crate::{biodivsim::sim_grid::Float, coo::Coo};
+use crate::{biodivsim::div::Float, coo::Coo};
 
 /// The range of integers before and after `i` by the amount of
 /// `threshold` (exclusive the latter bound), limited to the range

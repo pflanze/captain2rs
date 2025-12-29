@@ -17,7 +17,7 @@ mod captain2rs {
     use numpy::{pyo3::prelude::*, PyReadonlyArray};
 
     use crate::biodivsim::{
-        sim_grid::Float,
+        div::Float,
         sim_grid_original::{dispersal_distances_coord, dispersal_distances_threshold},
     };
 

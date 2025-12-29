@@ -1,8 +1,7 @@
 use std::mem::MaybeUninit;
-use std::ops::{Mul, Range};
+use std::ops::Range;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::dump::perhaps_dump;
 use ndarray::parallel::prelude::*;
 use ndarray::{Array2, Array3, ArrayBase, ArrayView2, ArrayViewMut2, Axis, Dim, ViewRepr};
 use numpy::{
@@ -11,23 +10,8 @@ use numpy::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-pub type Float = f64;
-
-fn square<Number: Mul + Copy>(x: Number) -> Number::Output {
-    x * x
-}
-
-/// Same as `bounded_range_around` but does not include the lower
-/// bound, and instead includes the upper bound; also returns whether
-/// the threshold window is unclipped. `threshold` must be >= 1.
-fn flipped_bounded_range_around(i: usize, length: usize, threshold: usize) -> (Range<usize>, bool) {
-    let n_min = i.saturating_sub(threshold - 1);
-    let n_max = usize::min(length, i + threshold + 1);
-    (
-        n_min..n_max,
-        i >= threshold && (i + threshold + 1) <= length,
-    )
-}
+use crate::biodivsim::div::{flipped_bounded_range_around, square, Float};
+use crate::dump::perhaps_dump;
 
 /// Reimplementation of `dispersal_distances_threshold`, calculating
 /// only a single threshold area and re-using it for all points in
