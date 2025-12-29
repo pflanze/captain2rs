@@ -646,7 +646,7 @@ mod tests {
             ar[(a + 1, b + 1)] = lum;
         }
         // dbg!(&ar);
-        perhaps_dump(0, 0, ar.view());
+        perhaps_dump(0, 0, ar.view(), 0. ..25.6);
 
         show_current_timing(true, timing, "END".into());
 

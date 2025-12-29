@@ -2,10 +2,11 @@ use std::{
     env,
     fs::{create_dir, File},
     io::BufWriter,
+    ops::Range,
 };
 
 use lazy_static::lazy_static;
-use ndarray::{ArrayBase, Dim, ViewRepr};
+use ndarray::ArrayView2;
 use num_traits::{AsPrimitive, Float};
 
 lazy_static! {
@@ -15,7 +16,8 @@ lazy_static! {
 pub fn perhaps_dump<T: Float + AsPrimitive<u8>>(
     iteration: u64,
     i: usize,
-    h: ArrayBase<ViewRepr<&T>, Dim<[usize; 2]>>,
+    h: ArrayView2<T>,
+    range: Range<T>,
 ) {
     if *DUMP {
         let path = format!("dump/{iteration:03}-{i:04}.png");
@@ -28,11 +30,13 @@ pub fn perhaps_dump<T: Float + AsPrimitive<u8>>(
         encoder.set_depth(png::BitDepth::Eight);
         let mut writer = encoder.write_header().unwrap();
         let mut data: Vec<u8> = vec![0; width * height];
+        let Range { start, end } = range;
+        let factor = T::from(256).unwrap() / (end - start);
         for y in 0..height {
             for x in 0..width {
                 let i = y * width + x;
                 let val = h[(x, y)];
-                data[i] = (val * T::from(10.).expect("ok")).as_()
+                data[i] = ((val - start) * factor).as_()
             }
         }
         writer.write_image_data(&data).unwrap(); // Save
