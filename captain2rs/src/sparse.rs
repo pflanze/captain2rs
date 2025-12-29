@@ -124,7 +124,7 @@ impl SparseMask {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Sparse<T> {
-    metadata: Arc<SparseMask>,
+    mask: Arc<SparseMask>,
     data: Array1<T>,
 }
 
@@ -138,8 +138,8 @@ pub enum SparseError {
 
 #[derive(Debug)]
 pub struct SparseStats {
-    pub metadata_bytes_shareable: usize,
-    pub metadata_strong_ref_count: usize,
+    pub mask_bytes_shareable: usize,
+    pub mask_strong_ref_count: usize,
     pub data_bytes: usize,
 }
 
@@ -198,52 +198,51 @@ impl<T> Sparse<T> {
             strides_start_i = strides_end_i;
         }
 
-        let metadata = SparseMask {
+        let mask = SparseMask {
             shape,
             strides: strides.into(),
             row_index: row_index.into(),
         };
         Ok(Sparse {
-            metadata: metadata.into(),
+            mask: mask.into(),
             data: data.into(),
         })
     }
 
     /// How many bytes of data this instance uses (malloc overheads
-    /// not included). Metadata can be shared between multiple
-    /// instances, thus its `metadata_bytes_shareable` value needs to
-    /// be divided by `metadata_strong_ref_count` to get the relevant
-    /// cost.
+    /// not included). The mask can be shared between multiple
+    /// instances, thus its `mask_bytes_shareable` value needs to be
+    /// divided by `mask_strong_ref_count` to get the relevant cost.
     pub fn stats(&self) -> SparseStats {
         SparseStats {
-            metadata_bytes_shareable: self.metadata.stats_bytes(),
-            metadata_strong_ref_count: Arc::strong_count(&self.metadata),
+            mask_bytes_shareable: self.mask.stats_bytes(),
+            mask_strong_ref_count: Arc::strong_count(&self.mask),
             data_bytes: self.data.len() * size_of::<T>(),
         }
     }
 
     pub fn shape(&self) -> &[usize] {
-        self.metadata.shape()
+        self.mask.shape()
     }
 
     pub fn row_len(&self) -> usize {
-        self.metadata.row_len()
+        self.mask.row_len()
     }
 
     pub fn dim(&self) -> (usize, usize) {
-        self.metadata.dim()
+        self.mask.dim()
     }
 
     pub fn num_values(&self) -> usize {
-        self.metadata.num_values()
+        self.mask.num_values()
     }
 
     pub fn width(&self) -> usize {
-        self.metadata.width()
+        self.mask.width()
     }
 
     pub fn height(&self) -> usize {
-        self.metadata.height()
+        self.mask.height()
     }
 
     /// Reconstructs row with index `row_i` by overwriting `row`.
@@ -279,10 +278,10 @@ impl<T> Sparse<T> {
             strides_start_i,
             strides_len,
             data_start_i,
-        } = &self.metadata.row_index[row_i];
+        } = &self.mask.row_index[row_i];
         let strides = {
             let (i, len) = (*strides_start_i as usize, *strides_len as usize);
-            &self.metadata.strides[i..(i + len)]
+            &self.mask.strides[i..(i + len)]
         };
         let mut data_i = *data_start_i;
         let data = self.data.as_slice().expect("1D always succeeds");
@@ -325,10 +324,10 @@ impl<T> Sparse<T> {
             strides_start_i,
             strides_len,
             data_start_i,
-        } = &self.metadata.row_index[row_i];
+        } = &self.mask.row_index[row_i];
         let strides = {
             let (i, len) = (*strides_start_i as usize, *strides_len as usize);
-            &self.metadata.strides[i..(i + len)]
+            &self.mask.strides[i..(i + len)]
         };
         let data = self.data.as_slice().expect("1D always succeeds");
         let mut data_i = *data_start_i;
@@ -365,7 +364,7 @@ impl<T> Sparse<T> {
     where
         T: Copy,
     {
-        (0..self.metadata.row_index.len()).map(move |row_i| self.row(row_i, empty_val))
+        (0..self.mask.row_index.len()).map(move |row_i| self.row(row_i, empty_val))
     }
 
     pub fn decompress(&self, empty_val: T) -> Array2<T>
@@ -393,9 +392,9 @@ impl<T> Sparse<T> {
     /// that are non-empty is copied. Emptiness is decided as per
     /// construction time, i.e. compression (or the 'mask' for empty
     /// points) does not change; points that were empty when
-    /// constructing the metadata are simply skipped here, regardless
-    /// of value. Panics if `row.len()` does not match the width of
-    /// the matrix.
+    /// constructing the mask are simply skipped here, regardless of
+    /// value. Panics if `row.len()` does not match the width of the
+    /// matrix.
     pub fn write_row_uncompressed(&mut self, row_i: usize, row: &[T])
     where
         T: Copy,
@@ -405,10 +404,10 @@ impl<T> Sparse<T> {
             strides_start_i,
             strides_len,
             data_start_i,
-        } = &self.metadata.row_index[row_i];
+        } = &self.mask.row_index[row_i];
         let strides = {
             let (i, len) = (*strides_start_i as usize, *strides_len as usize);
-            &self.metadata.strides[i..(i + len)]
+            &self.mask.strides[i..(i + len)]
         };
         let mut data_i = *data_start_i;
         let data = self.data.as_slice_mut().expect("1D always succeeds");
@@ -448,37 +447,37 @@ macro_rules! def_array_binop {
             type Output = Sparse<T>;
 
             fn $method(self, rhs: Self) -> Self::Output {
-                let Sparse { metadata, data } = self;
+                let Sparse { mask, data } = self;
                 let data = data $op &rhs.data;
-                clone_arc!(metadata);
-                Sparse { metadata, data }
+                clone_arc!(mask);
+                Sparse { mask, data }
             }
         }
         impl<T: LinalgScalar> $Op for Sparse<T> {
             type Output = Sparse<T>;
 
             fn $method(self, rhs: Self) -> Self::Output {
-                let Sparse { metadata, data } = self;
+                let Sparse { mask, data } = self;
                 let data = data $op rhs.data;
-                Sparse { metadata, data }
+                Sparse { mask, data }
             }
         }
         impl<T: LinalgScalar> $Op<&Sparse<T>> for Sparse<T> {
             type Output = Sparse<T>;
 
             fn $method(self, rhs: &Sparse<T>) -> Self::Output {
-                let Sparse { metadata, data } = self;
+                let Sparse { mask, data } = self;
                 let data = data $op &rhs.data;
-                Sparse { metadata, data }
+                Sparse { mask, data }
             }
         }
         impl<T: LinalgScalar> $Op<Sparse<T>> for &Sparse<T> {
             type Output = Sparse<T>;
 
             fn $method(self, rhs: Sparse<T>) -> Self::Output {
-                let Sparse { metadata: _, data } = self;
+                let Sparse { mask: _, data } = self;
                 let data = data $op rhs.data;
-                Sparse { metadata: rhs.metadata, data }
+                Sparse { mask: rhs.mask, data }
             }
         }
 
@@ -491,10 +490,10 @@ macro_rules! def_array_binop {
             type Output = Sparse<T>;
 
             fn $method(self, rhs: T2) -> Self::Output {
-                let Sparse { metadata, data } = self;
+                let Sparse { mask, data } = self;
                 let data = data $op rhs;
-                clone_arc!(metadata);
-                Sparse { metadata, data }
+                clone_arc!(mask);
+                Sparse { mask, data }
             }
         }
         impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for Sparse<T>
@@ -504,9 +503,9 @@ macro_rules! def_array_binop {
             type Output = Sparse<T>;
 
             fn $method(self, rhs: T2) -> Self::Output {
-                let Sparse { metadata, data } = self;
+                let Sparse { mask, data } = self;
                 let data = data $op rhs;
-                Sparse { metadata, data }
+                Sparse { mask, data }
             }
         }
     }
