@@ -111,7 +111,7 @@ impl Dispersal {
 }
 
 impl Dispersal {
-    fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
+    pub fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
         let Self {
             threshold,
             neg_exp_rate,
@@ -197,7 +197,7 @@ impl Dispersal {
     /// Calculate the equivalent of `einsum("ij,ijnm->nm", a, self)`
     /// and write the result to `c`. Initializes/overwrites all values
     /// in `c`
-    fn apply_to(&self, a: ArrayView2<Float>, c: ArrayViewMut2<MaybeUninit<Float>>) {
+    pub fn apply_to(&self, a: ArrayView2<Float>, c: ArrayViewMut2<MaybeUninit<Float>>) {
         match self.threshold {
             // Specializations of the convolve method that carries out
             // the application. You can add more specializations if
@@ -226,7 +226,7 @@ impl Dispersal {
         }
     }
 
-    fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
+    pub fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
         let mut c = Array2::<Float>::uninit(a.dim());
         self.apply_to(a, c.view_mut());
         // Safe because `.apply_to` overwrites all values in `c`
