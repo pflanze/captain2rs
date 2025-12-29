@@ -19,7 +19,7 @@ use crate::dump::perhaps_dump;
 /// input points.
 #[pyclass(frozen)]
 #[derive(Debug)]
-pub struct DispersalDistancesThreshold {
+pub struct DispersalWithThreshold {
     pub threshold: usize,
     pub neg_exp_rate: Float,
     pub cache: Array2<Float>,
@@ -30,7 +30,7 @@ fn dist_value(neg_exp_rate: Float, dx: i32, dy: i32) -> Float {
 }
 
 #[pymethods]
-impl DispersalDistancesThreshold {
+impl DispersalWithThreshold {
     #[new]
     fn new(lambda_0: Float, threshold: usize) -> Self {
         let neg_exp_rate = -1.0 / lambda_0;
@@ -110,7 +110,7 @@ impl DispersalDistancesThreshold {
     }
 }
 
-impl DispersalDistancesThreshold {
+impl DispersalWithThreshold {
     fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
         let Self {
             threshold,
@@ -154,7 +154,7 @@ impl DispersalDistancesThreshold {
         a: ArrayView2<Float>,
         mut c: ArrayViewMut2<MaybeUninit<Float>>,
     ) {
-        let DispersalDistancesThreshold {
+        let DispersalWithThreshold {
             threshold,
             neg_exp_rate: _,
             cache: _,
@@ -281,7 +281,7 @@ pub fn num_candidates_rs<'py>(
     let iteration = ITERATION.fetch_add(1, Ordering::SeqCst);
 
     let mut result = Array3::<Float>::uninit((n_species, o, p));
-    let ddt = DispersalDistancesThreshold::new(lambda_0_init, threshold);
+    let ddt = DispersalWithThreshold::new(lambda_0_init, threshold);
     result
         .axis_iter_mut(Axis(0))
         .into_par_iter()

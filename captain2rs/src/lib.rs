@@ -60,5 +60,5 @@ mod captain2rs {
     #[pymodule_export]
     use super::biodivsim::dispersal::num_candidates_rs;
     #[pymodule_export]
-    use super::biodivsim::dispersal::DispersalDistancesThreshold;
+    use super::biodivsim::dispersal::DispersalWithThreshold;
 }
