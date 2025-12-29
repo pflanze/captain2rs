@@ -1,8 +1,6 @@
-//! 2D arrays compressed by omitting points that satisfy some
-//! criterium (sparse matrices), optimized for the case of maps with
-//! large run lengths, implemented by way of a simplified run-length
-//! encoding (only the sparse points are encoded, other points are
-//! repeated even if duplicates).
+//! Sparse 2D arrays, based on a run-length encoded shareable mask
+//! (strides of gap and data lengths). This works well for cases with
+//! large run lengths, e.g. maps.
 
 use std::{
     fmt::Debug,
@@ -69,10 +67,9 @@ struct StridesRowIndex {
     data_start_i: usize,
 }
 
-/// The information about where values in a compressed array belong
-/// to.
+/// The information about where the values in a sparse array are.
 #[derive(Debug)]
-pub struct Compressed2Metadata {
+pub struct SparseMask {
     shape: [usize; 2],
     /// The sum of all counts
     strides: Box<[Stride]>,
@@ -80,15 +77,15 @@ pub struct Compressed2Metadata {
     row_index: Box<[StridesRowIndex]>,
 }
 
-impl PartialEq for Compressed2Metadata {
+impl PartialEq for SparseMask {
     fn eq(&self, other: &Self) -> bool {
         self.shape == other.shape && self.strides == other.strides
     }
 }
 
-impl Eq for Compressed2Metadata {}
+impl Eq for SparseMask {}
 
-impl Compressed2Metadata {
+impl SparseMask {
     pub fn shape(&self) -> &[usize] {
         &self.shape
     }
@@ -126,13 +123,13 @@ impl Compressed2Metadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Compressed2<T> {
-    metadata: Arc<Compressed2Metadata>,
+pub struct Sparse<T> {
+    metadata: Arc<SparseMask>,
     data: Array1<T>,
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum Compressed2Error {
+pub enum SparseError {
     #[error("given matrix is too wide, must not exceed {}", Count::MAX)]
     TooWide,
     #[error("given matrix has too many points, must not exceed {}", u32::MAX)]
@@ -140,26 +137,23 @@ pub enum Compressed2Error {
 }
 
 #[derive(Debug)]
-pub struct CompressedStats {
+pub struct SparseStats {
     pub metadata_bytes_shareable: usize,
     pub metadata_strong_ref_count: usize,
     pub data_bytes: usize,
 }
 
-impl<T> Compressed2<T> {
-    pub fn from_view(
-        value: ArrayView2<T>,
-        is_null: impl Fn(T) -> bool,
-    ) -> Result<Self, Compressed2Error>
+impl<T> Sparse<T> {
+    pub fn from_view(value: ArrayView2<T>, is_null: impl Fn(T) -> bool) -> Result<Self, SparseError>
     where
         T: Copy,
     {
         let (height, width) = value.dim();
         if width > Count::MAX as usize {
-            return Err(Compressed2Error::TooWide);
+            return Err(SparseError::TooWide);
         }
         if width * height > u32::MAX as usize {
-            return Err(Compressed2Error::TooManyPoints);
+            return Err(SparseError::TooManyPoints);
         }
         let shape = [height, width];
         let mut data = Vec::new();
@@ -204,12 +198,12 @@ impl<T> Compressed2<T> {
             strides_start_i = strides_end_i;
         }
 
-        let metadata = Compressed2Metadata {
+        let metadata = SparseMask {
             shape,
             strides: strides.into(),
             row_index: row_index.into(),
         };
-        Ok(Compressed2 {
+        Ok(Sparse {
             metadata: metadata.into(),
             data: data.into(),
         })
@@ -220,8 +214,8 @@ impl<T> Compressed2<T> {
     /// instances, thus its `metadata_bytes_shareable` value needs to
     /// be divided by `metadata_strong_ref_count` to get the relevant
     /// cost.
-    pub fn stats(&self) -> CompressedStats {
-        CompressedStats {
+    pub fn stats(&self) -> SparseStats {
+        SparseStats {
             metadata_bytes_shareable: self.metadata.stats_bytes(),
             metadata_strong_ref_count: Arc::strong_count(&self.metadata),
             data_bytes: self.data.len() * size_of::<T>(),
@@ -450,69 +444,69 @@ macro_rules! def_array_binop {
 
         // With itself
 
-        impl<T: LinalgScalar> $Op for &Compressed2<T> {
-            type Output = Compressed2<T>;
+        impl<T: LinalgScalar> $Op for &Sparse<T> {
+            type Output = Sparse<T>;
 
             fn $method(self, rhs: Self) -> Self::Output {
-                let Compressed2 { metadata, data } = self;
+                let Sparse { metadata, data } = self;
                 let data = data $op &rhs.data;
                 clone_arc!(metadata);
-                Compressed2 { metadata, data }
+                Sparse { metadata, data }
             }
         }
-        impl<T: LinalgScalar> $Op for Compressed2<T> {
-            type Output = Compressed2<T>;
+        impl<T: LinalgScalar> $Op for Sparse<T> {
+            type Output = Sparse<T>;
 
             fn $method(self, rhs: Self) -> Self::Output {
-                let Compressed2 { metadata, data } = self;
+                let Sparse { metadata, data } = self;
                 let data = data $op rhs.data;
-                Compressed2 { metadata, data }
+                Sparse { metadata, data }
             }
         }
-        impl<T: LinalgScalar> $Op<&Compressed2<T>> for Compressed2<T> {
-            type Output = Compressed2<T>;
+        impl<T: LinalgScalar> $Op<&Sparse<T>> for Sparse<T> {
+            type Output = Sparse<T>;
 
-            fn $method(self, rhs: &Compressed2<T>) -> Self::Output {
-                let Compressed2 { metadata, data } = self;
+            fn $method(self, rhs: &Sparse<T>) -> Self::Output {
+                let Sparse { metadata, data } = self;
                 let data = data $op &rhs.data;
-                Compressed2 { metadata, data }
+                Sparse { metadata, data }
             }
         }
-        impl<T: LinalgScalar> $Op<Compressed2<T>> for &Compressed2<T> {
-            type Output = Compressed2<T>;
+        impl<T: LinalgScalar> $Op<Sparse<T>> for &Sparse<T> {
+            type Output = Sparse<T>;
 
-            fn $method(self, rhs: Compressed2<T>) -> Self::Output {
-                let Compressed2 { metadata: _, data } = self;
+            fn $method(self, rhs: Sparse<T>) -> Self::Output {
+                let Sparse { metadata: _, data } = self;
                 let data = data $op rhs.data;
-                Compressed2 { metadata: rhs.metadata, data }
+                Sparse { metadata: rhs.metadata, data }
             }
         }
 
         // Any rhs for which $Op is implemented
 
-        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for &Compressed2<T>
+        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for &Sparse<T>
         where
             for<'a> &'a Array1<T>: $Op<T2, Output = Array1<T>>,
         {
-            type Output = Compressed2<T>;
+            type Output = Sparse<T>;
 
             fn $method(self, rhs: T2) -> Self::Output {
-                let Compressed2 { metadata, data } = self;
+                let Sparse { metadata, data } = self;
                 let data = data $op rhs;
                 clone_arc!(metadata);
-                Compressed2 { metadata, data }
+                Sparse { metadata, data }
             }
         }
-        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for Compressed2<T>
+        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for Sparse<T>
         where
             Array1<T>: $Op<T2, Output = Array1<T>>,
         {
-            type Output = Compressed2<T>;
+            type Output = Sparse<T>;
 
             fn $method(self, rhs: T2) -> Self::Output {
-                let Compressed2 { metadata, data } = self;
+                let Sparse { metadata, data } = self;
                 let data = data $op rhs;
-                Compressed2 { metadata, data }
+                Sparse { metadata, data }
             }
         }
     }
@@ -534,9 +528,9 @@ mod tests {
 
     use super::*;
 
-    fn test_correctness(a: Array2<i32>, height: usize) -> Result<Compressed2<i32>> {
+    fn test_correctness(a: Array2<i32>, height: usize) -> Result<Sparse<i32>> {
         dbg!(&a);
-        let c = Compressed2::from_view(a.view(), |x| x == 0)?;
+        let c = Sparse::from_view(a.view(), |x| x == 0)?;
         for (row_a, row_c) in a.rows().into_iter().zip(c.rows(0)) {
             let row_a = row_a.as_slice().expect("possible");
             assert_eq!(row_a, &*row_c);
@@ -618,7 +612,7 @@ mod tests {
 
         // Runs one decompression, compression and streaming
         // decompression
-        let run_bench = move |c: &Compressed2<f32>, run_no: u64, i: usize| -> Result<()> {
+        let run_bench = move |c: &Sparse<f32>, run_no: u64, i: usize| -> Result<()> {
             let timing =
                 show_current_timing(true, None, format!("{run_no}/{i}: decompress").into());
 
@@ -627,7 +621,7 @@ mod tests {
             let timing =
                 show_current_timing(true, timing, format!("{run_no}/{i}: compress").into());
 
-            let c2 = Compressed2::from_view(dec.view(), |x| x == 0.)?;
+            let c2 = Sparse::from_view(dec.view(), |x| x == 0.)?;
 
             let timing = show_current_timing(true, timing, format!("{run_no}/{i}: verify").into());
 
@@ -654,7 +648,7 @@ mod tests {
             Ok(())
         };
 
-        let c = Compressed2::from_view(ar.view(), |x| x == 0.)?;
+        let c = Sparse::from_view(ar.view(), |x| x == 0.)?;
         {
             let dec = c.decompress(0.);
             assert_eq!(ar, dec);
