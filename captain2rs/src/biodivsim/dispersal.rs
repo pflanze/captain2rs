@@ -32,7 +32,7 @@ fn dist_value(neg_exp_rate: Float, dx: i32, dy: i32) -> Float {
 #[pymethods]
 impl Dispersal {
     #[new]
-    fn new(lambda_0: Float, threshold: usize) -> Self {
+    pub fn new(lambda_0: Float, threshold: usize) -> Self {
         let neg_exp_rate = -1.0 / lambda_0;
         let length = threshold * 2;
         let mut cache = Array2::zeros((length, length));
