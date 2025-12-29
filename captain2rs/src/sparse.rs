@@ -13,12 +13,23 @@ use num_traits::Zero;
 
 use crate::clone_arc;
 
+/// A length of a gap or strip of points in one row of a matrix,
+/// i.e. must be able to represent the max width of a matrix, and also
+/// the max height (see `CountTotal`)
 type Count = u16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Stride {
     count_empty: Count,
     count_data: Count,
+}
+
+/// The sum of all counts across a matrix
+type TotalCount = u32;
+
+#[test]
+fn assert_dependency() {
+    assert_eq!(size_of::<TotalCount>(), 2 * size_of::<Count>());
 }
 
 enum StrideAction {
@@ -62,8 +73,8 @@ impl Stride {
 
 #[derive(Debug)]
 struct StridesRowIndex {
-    strides_start_i: u32,
-    strides_len: u32,
+    strides_start_i: TotalCount,
+    strides_len: TotalCount,
     data_start_i: usize,
 }
 
@@ -71,10 +82,12 @@ struct StridesRowIndex {
 #[derive(Debug)]
 pub struct SparseMask {
     shape: [usize; 2],
-    /// The sum of all counts
     strides: Box<[Stride]>,
     /// To get the slices of `strides` and `data`
     row_index: Box<[StridesRowIndex]>,
+    /// The number of non-sparse data points (i.e. the length of the
+    /// `data` array in `Sparse`)
+    total_count_data: TotalCount,
 }
 
 impl PartialEq for SparseMask {
@@ -86,6 +99,10 @@ impl PartialEq for SparseMask {
 impl Eq for SparseMask {}
 
 impl SparseMask {
+    pub fn total_count_data(&self) -> TotalCount {
+        self.total_count_data
+    }
+
     pub fn shape(&self) -> &[usize] {
         &self.shape
     }
@@ -132,8 +149,13 @@ pub struct Sparse<T> {
 pub enum SparseError {
     #[error("given matrix is too wide, must not exceed {}", Count::MAX)]
     TooWide,
-    #[error("given matrix has too many points, must not exceed {}", u32::MAX)]
+    #[error(
+        "given matrix has too many points, must not exceed {}",
+        TotalCount::MAX
+    )]
     TooManyPoints,
+    #[error("given mask and data array do not agree on the total number of data points")]
+    NonMatchingDataCount,
 }
 
 #[derive(Debug)]
@@ -144,6 +166,14 @@ pub struct SparseStats {
 }
 
 impl<T> Sparse<T> {
+    pub fn from_mask_and_data(mask: Arc<SparseMask>, data: Array1<T>) -> Result<Self, SparseError> {
+        let expected = mask.total_count_data() as usize;
+        if expected != data.len() {
+            return Err(SparseError::NonMatchingDataCount);
+        }
+        Ok(Self { mask, data })
+    }
+
     pub fn from_view(value: ArrayView2<T>, is_null: impl Fn(T) -> bool) -> Result<Self, SparseError>
     where
         T: Copy,
@@ -202,6 +232,10 @@ impl<T> Sparse<T> {
             shape,
             strides: strides.into(),
             row_index: row_index.into(),
+            total_count_data: data
+                .len()
+                .try_into()
+                .expect("always succeeds because TotalCount is twice as wide as Count"),
         };
         Ok(Sparse {
             mask: mask.into(),
