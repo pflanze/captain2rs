@@ -28,7 +28,7 @@ pub fn _perhaps_dump<T: Float + AsPrimitive<u8>>(
             path
         };
         let w = BufWriter::new(File::create(&path).unwrap());
-        let (width, height) = h.dim();
+        let (height, width) = h.dim();
         let mut encoder =
             png::Encoder::new(w, width.try_into().unwrap(), height.try_into().unwrap());
         encoder.set_color(png::ColorType::Grayscale);
@@ -40,7 +40,7 @@ pub fn _perhaps_dump<T: Float + AsPrimitive<u8>>(
         for y in 0..height {
             for x in 0..width {
                 let i = y * width + x;
-                let val = h[(x, y)];
+                let val = h[(y, x)];
                 data[i] = ((val - start) * factor).as_()
             }
         }
