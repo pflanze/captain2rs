@@ -564,7 +564,7 @@ mod tests {
     use rand::Rng;
     use rand_distr::Weibull;
 
-    use crate::{dump::perhaps_dump, timing::show_current_timing};
+    use crate::{dump::perhaps_dump_iteration_i, timing::show_current_timing};
 
     use super::*;
 
@@ -646,7 +646,7 @@ mod tests {
             ar[(a + 1, b + 1)] = lum;
         }
         // dbg!(&ar);
-        perhaps_dump(0, 0, ar.view(), 0. ..25.6);
+        perhaps_dump_iteration_i(0, 0, ar.view(), 0. ..25.6);
 
         show_current_timing(true, timing, "END".into());
 

@@ -11,7 +11,7 @@ use numpy::{
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::biodivsim::div::{flipped_bounded_range_around, square, Float};
-use crate::dump::perhaps_dump;
+use crate::dump::perhaps_dump_iteration_i;
 
 /// Reimplementation of `dispersal_distances_threshold`, calculating
 /// only a single threshold area and re-using it for all points in
@@ -288,7 +288,7 @@ pub fn num_candidates_rs<'py>(
         .enumerate()
         .for_each(|(i, res)| {
             let local_h: ArrayBase<ViewRepr<&f64>, Dim<[usize; 2]>> = h.index_axis(Axis(0), i);
-            perhaps_dump(iteration, i, local_h, 0. ..25.6);
+            perhaps_dump_iteration_i(iteration, i, local_h, 0. ..25.6);
             ddt.map(|x| x.powf(1. / lambda_0[i])).apply_to(local_h, res);
         });
 
