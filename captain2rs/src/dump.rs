@@ -11,7 +11,7 @@ use ndarray::ArrayView2;
 use num_traits::{AsPrimitive, Float};
 
 lazy_static! {
-    static ref DUMP: bool = env::var_os("DUMP").is_some();
+    pub static ref DUMP: bool = env::var_os("DUMP").is_some();
 }
 
 pub fn _perhaps_dump<T: Float + AsPrimitive<u8>>(
@@ -71,12 +71,21 @@ pub fn perhaps_dump_name_i<T: Float + AsPrimitive<u8>>(
 }
 
 /// `gen_name` must return a file name without suffix nor slashes.
-pub fn perhaps_dump<T: Float + AsPrimitive<u8>, S: Into<String>>(
+pub fn perhaps_dump_<T: Float + AsPrimitive<u8>, S: Into<String>>(
     gen_name: impl FnOnce() -> S,
     h: ArrayView2<T>,
     range: Range<T>,
 ) {
     if *DUMP {
         _perhaps_dump(gen_name().into(), h, range);
+    }
+}
+
+#[macro_export]
+macro_rules! perhaps_dump {
+    { $name:expr, $h:expr, $range:expr } => {
+        if *$crate::dump::DUMP {
+            $crate::dump::_perhaps_dump($name.into(), $h, $range);
+        }
     }
 }
