@@ -17,3 +17,13 @@ macro_rules! clone_arc {
         let $id = $id.clone_arc();
     }
 }
+
+pub trait IntoArc {
+    fn into_arc(self) -> Arc<Self>;
+}
+
+impl<T> IntoArc for T {
+    fn into_arc(self) -> Arc<Self> {
+        Arc::new(self)
+    }
+}
