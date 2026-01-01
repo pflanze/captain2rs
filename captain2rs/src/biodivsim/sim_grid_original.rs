@@ -1,17 +1,9 @@
-use std::ops::Range;
-
 use ndarray::ArrayView2;
 
-use crate::{biodivsim::div::Float, coo::Coo};
-
-/// The range of integers before and after `i` by the amount of
-/// `threshold` (exclusive the latter bound), limited to the range
-/// `0..length`.
-fn bounded_range_around(i: u32, length: u32, threshold: u32) -> Range<u32> {
-    let n_min = i.saturating_sub(threshold);
-    let n_max = u32::min(length, i + threshold);
-    n_min..n_max
-}
+use crate::{
+    biodivsim::div::{bounded_range_around, Float},
+    coo::Coo,
+};
 
 // @jit(nopython=True)
 // def dispersalDistancesThreshold(length: int,
