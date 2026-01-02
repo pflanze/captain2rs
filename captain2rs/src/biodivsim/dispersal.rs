@@ -1,4 +1,5 @@
-use std::mem::MaybeUninit;
+use std::fmt::Debug;
+use std::mem::{transmute, MaybeUninit};
 use std::ops::Range;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -10,8 +11,71 @@ use numpy::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::biodivsim::div::{flipped_bounded_range_around, square, Float};
+use crate::biodivsim::div::{square, FlippedBoundedRangesAround, Float};
 use crate::dump::perhaps_dump_iteration_i;
+
+#[macro_export]
+macro_rules! _dispersal_dispatch {
+    { $threshold:expr, { $($before:tt)* } { $($after:tt)* } } => {
+        match $threshold {
+            // You can add more specializations if you need a larger
+            // `threshold`.
+            1 => $($before)* 1 $($after)*,
+            2 => $($before)* 2 $($after)*,
+            3 => $($before)* 3 $($after)*,
+            4 => $($before)* 4 $($after)*,
+            5 => $($before)* 5 $($after)*,
+            6 => $($before)* 6 $($after)*,
+            7 => $($before)* 7 $($after)*,
+            8 => $($before)* 8 $($after)*,
+            9 => $($before)* 9 $($after)*,
+            10 => $($before)* 10 $($after)*,
+            11 => $($before)* 11 $($after)*,
+            12 => $($before)* 12 $($after)*,
+            13 => $($before)* 13 $($after)*,
+            14 => $($before)* 14 $($after)*,
+            15 => $($before)* 15 $($after)*,
+            16 => $($before)* 16 $($after)*,
+            _ => panic!(
+                "don't have a specialization for threshold {}, please edit the source to add one",
+                $threshold
+            ),
+        }
+    }
+}
+
+/// The length of the threshold square--symmetric with `threshold`
+/// points around the coordinate, i.e. times 2 plus 1.
+pub(crate) const fn len_from_threshold(threshold: usize) -> usize {
+    threshold * 2 + 1
+}
+
+pub trait RowSlice<T> {
+    fn row_slice(&self, row_i: usize) -> &[T];
+}
+
+impl<'t> RowSlice<Float> for ArrayView2<'t, Float> {
+    #[inline]
+    fn row_slice(&self, row_i: usize) -> &[Float] {
+        let row = self.row(row_i);
+        let row = row.as_slice().expect("standard layout");
+        // XX ugly, ndarray creates a new struct with a lifetime, but
+        // then for .as_slice() it takes &self's lifetime, not the one
+        // in the struct. Probably a bug?
+        unsafe {
+            // Safe because it's just a bug of missing a lifetime in
+            // ndarray? XX verify more deeply?
+            transmute(row)
+        }
+    }
+}
+
+impl<'t, R: AsRef<[Float]>> RowSlice<Float> for &[R] {
+    #[inline]
+    fn row_slice(&self, row_i: usize) -> &[Float] {
+        self[row_i].as_ref()
+    }
+}
 
 /// Reimplementation of `dispersal_distances_threshold`, calculating
 /// only a single threshold area and re-using it for all points in
@@ -34,7 +98,7 @@ impl Dispersal {
     #[new]
     pub fn new(lambda_0: Float, threshold: usize) -> Self {
         let neg_exp_rate = -1.0 / lambda_0;
-        let length = threshold * 2;
+        let length = len_from_threshold(threshold);
         let mut cache = Array2::zeros((length, length));
         for i in 0..length {
             for j in 0..length {
@@ -77,7 +141,11 @@ impl Dispersal {
     /// may panic otherwise
     #[inline]
     fn at(&self, i: usize, j: usize, n: usize, m: usize) -> Float {
-        self.cached_at(i, j, n, m)
+        #[cfg(debug_assertions)]
+        let w = self.asserting_at(i, j, n, m);
+        #[cfg(not(debug_assertions))]
+        let w = self.cached_at(i, j, n, m);
+        w
     }
 
     // (Unidiomatically, this has to panic for python errors, because
@@ -111,6 +179,9 @@ impl Dispersal {
 }
 
 impl Dispersal {
+    // XX careful: once automatic derivation of threshold from lambda0
+    // is done, this will not be valid anymore! todo: probably useless
+    // and should be removed anyway.
     pub fn map(&self, dot_transform: impl Fn(Float) -> Float) -> Self {
         let Self {
             threshold,
@@ -127,29 +198,56 @@ impl Dispersal {
 
     /// Used internally. `a.is_standard_layout()` must be true!
     #[inline]
-    fn dot<const M: usize>(
+    fn _dot<const THRESHOLD: usize>(
         &self,
         n_range: Range<usize>,
         m_start: usize,
-        a: &ArrayView2<Float>,
+        a: impl RowSlice<Float>,
     ) -> Float {
+        let threshold_len = len_from_threshold(THRESHOLD);
         let mut sum = 0.;
         let n_range_start = n_range.start;
         for n in n_range {
-            let a_row = a.row(n);
-            let a_slice = &a_row.as_slice().unwrap()[m_start..];
-            assert!(a_slice.len() >= M);
+            let a_slice = &a.row_slice(n)[m_start..];
+            assert!(a_slice.len() >= threshold_len);
             let cache_row = self.cache.row(n - n_range_start);
             let cache_slice = &cache_row.as_slice().unwrap();
-            assert!(cache_slice.len() >= M);
-            for _m in 0..M {
+            assert!(cache_slice.len() >= threshold_len);
+            for _m in 0..threshold_len {
                 sum += a_slice[_m] * cache_slice[_m];
             }
         }
         sum
     }
 
-    fn convolve<const M: usize>(
+    pub fn dot<const THRESHOLD: usize>(
+        &self,
+        area: FlippedBoundedRangesAround,
+        a: impl RowSlice<Float> + Debug,
+    ) -> Float {
+        let FlippedBoundedRangesAround {
+            n,
+            m,
+            n_range,
+            n_is_unclipped,
+            m_range,
+            m_is_unclipped,
+        } = area;
+        if n_is_unclipped && m_is_unclipped {
+            self._dot::<THRESHOLD>(n_range, m_range.start, a)
+        } else {
+            let mut sum = 0.;
+            for n_ in n_range.clone() {
+                let row = a.row_slice(n_);
+                for m_ in m_range.clone() {
+                    sum += row[m_] * self.at(n, m, n_, m_)
+                }
+            }
+            sum
+        }
+    }
+
+    fn convolve<const THRESHOLD: usize>(
         &self,
         a: ArrayView2<Float>,
         mut c: ArrayViewMut2<MaybeUninit<Float>>,
@@ -173,22 +271,12 @@ impl Dispersal {
 
         let (dim_i, dim_j) = a.dim();
 
+        // vertical
         for i in 0..dim_i {
+            // horizontal
             for j in 0..dim_j {
-                let (n_range, n_is_unclipped) = flipped_bounded_range_around(i, dim_i, threshold);
-                let (m_range, m_is_unclipped) = flipped_bounded_range_around(j, dim_j, threshold);
-
-                let sum = if n_is_unclipped && m_is_unclipped {
-                    self.dot::<M>(n_range, m_range.start, &a)
-                } else {
-                    let mut sum = 0.;
-                    for n in n_range {
-                        for m in m_range.clone() {
-                            sum += a[(n, m)] * self.at(i, j, n, m)
-                        }
-                    }
-                    sum
-                };
+                let area = FlippedBoundedRangesAround::new(i, dim_i, j, dim_j, threshold);
+                let sum = self.dot::<THRESHOLD>(area, a);
                 c[(i, j)].write(sum);
             }
         }
@@ -198,39 +286,19 @@ impl Dispersal {
     /// and write the result to `c`. Initializes/overwrites all values
     /// in `c`
     pub fn apply_to(&self, a: ArrayView2<Float>, c: ArrayViewMut2<MaybeUninit<Float>>) {
-        match self.threshold {
-            // Specializations of the convolve method that carries out
-            // the application. You can add more specializations if
-            // you need a larger `threshold`. The `M` parameter on the
-            // right is the whole width of a slice, i.e. twice the
-            // threshold.
-            1 => self.convolve::<2>(a, c),
-            2 => self.convolve::<4>(a, c),
-            3 => self.convolve::<6>(a, c),
-            4 => self.convolve::<8>(a, c),
-            5 => self.convolve::<10>(a, c),
-            6 => self.convolve::<12>(a, c),
-            7 => self.convolve::<14>(a, c),
-            8 => self.convolve::<16>(a, c),
-            9 => self.convolve::<18>(a, c),
-            10 => self.convolve::<20>(a, c),
-            11 => self.convolve::<22>(a, c),
-            12 => self.convolve::<24>(a, c),
-            13 => self.convolve::<26>(a, c),
-            14 => self.convolve::<28>(a, c),
-            15 => self.convolve::<30>(a, c),
-            _ => panic!(
-                "don't have a specialization for threshold {}, please edit the source to add one",
-                self.threshold
-            ),
-        }
+        // Call specializations of the convolve method that carries
+        // out the application.
+        _dispersal_dispatch!(self.threshold, { self.convolve::< } { >(a, c) })
     }
 
     pub fn apply(&self, a: ArrayView2<Float>) -> Array2<Float> {
         let mut c = Array2::<Float>::uninit(a.dim());
         self.apply_to(a, c.view_mut());
-        // Safe because `.apply_to` overwrites all values in `c`
-        unsafe { c.assume_init() }
+        unsafe {
+            // Safe because `.apply_to` overwrites all values in `c`
+            // without reading from it, and Float is Copy
+            c.assume_init()
+        }
     }
 }
 
