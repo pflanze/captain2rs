@@ -15,12 +15,10 @@ Trying to implement small parts of [captain2](https://github.com/captain-project
 
 ### Run the Rust-only tests
 
-NOTE: this crate doesn't compile on mac OS currently, skip this step for now. 
-
-From the nested captain2rs-test subdirectory:
+From the nested captain2rs subdirectory:
 
 ```shell
-~/captain2rs/captain2rs-test$ cargo run --release --bin main
+~/captain2rs/captain2rs$ cargo test --release
 ```
 
 ### Build the library to use from Python
