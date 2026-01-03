@@ -1,7 +1,7 @@
 use std::{thread::sleep, time::Duration};
 
 use anyhow::Result;
-use captain2rs::biodivsim::sim_grid::dispersal_distances_threshold;
+use captain2rs::biodivsim::sim_grid_original::dispersal_distances_threshold;
 
 fn main() -> Result<()> {
     let debug = true;
@@ -16,12 +16,12 @@ fn main() -> Result<()> {
     {
         let mut x = dispersal_distances_threshold(1000, 0.1, 3, true, Some(6.993));
         dbg!(x.len());
-        assert_eq!(x.len(), 35892082);
+        assert_eq!(x.len(), 48832145);
         assert!(!x.is_sorted());
         x.sort()?;
         assert_eq!(x.get([999, 999, 999, 999]), Some(1.0));
-        assert_eq!(x.get([0, 2, 3, 4]), None);
-        assert_eq!(x[[0, 2, 3, 4]], 6.993);
+        assert_eq!(x.get([0, 2, 4, 5]), None);
+        assert_eq!(x[[0, 2, 4, 5]], 6.993);
         x.insert_unordered([999, 1000, 3, 4], 1.3);
         assert!(x.is_sorted());
         x.insert_unordered([0, 2, 3, 4], 1.2);
