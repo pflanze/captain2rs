@@ -66,6 +66,43 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
         _ = self._insert::<false>(coords, val);
     }
 
+    /// Overwrites an existing value at the given coordinates and
+    /// returns true if so. If there is no value, does nothing and
+    /// returns false. Note: forces the tensor to be sorted; thus, if
+    /// efficiency matters, don't interleave this call with
+    /// `insert_unordered` or `set`.
+    pub fn overwrite<C0>(&mut self, coords: [C0; D], val: V) -> Result<bool>
+    where
+        C: From<C0>,
+    {
+        self.sort()?;
+        if let Some(rf) = self.get_mut(coords) {
+            *rf = val;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Insert a value, overwriting a previously inserted one if
+    /// present. Returns `false` if there was no slot for the given
+    /// coordinates, `true` if one was overwritten. Note: forces the
+    /// tensor to be sorted, but then leaves it unsorted if the value
+    /// was newly inserted; thus, if efficiency matters, don't
+    /// interleave this call with `insert_unordered`, and avoid
+    /// calling it again if it returned `false`.
+    pub fn set<C0: Copy>(&mut self, coords: [C0; D], val: V) -> Result<bool>
+    where
+        C: From<C0>,
+        V: Clone,
+    {
+        if self.overwrite(coords, val.clone())? {
+            return Ok(true);
+        }
+        self.insert_unordered(coords, val);
+        Ok(false)
+    }
+
     /// Check that the ordering is correct: a section must be
     /// sorted. The next lower level (next dimension) section per same
     /// value must be sorted again
@@ -109,6 +146,22 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
             .binary_search_by_key(&coords, |(coords, _)| *coords)
         {
             Ok(i) => Some(&self.points[i].1),
+            Err(_) => None,
+        }
+    }
+
+    /// Must only be called on a sorted self, otherwise panics!
+    pub fn get_mut<C0>(&mut self, coords: [C0; D]) -> Option<&mut V>
+    where
+        C: From<C0>,
+    {
+        assert!(self.is_sorted);
+        let coords = coords.map(|c| c.into());
+        match self
+            .points
+            .binary_search_by_key(&coords, |(coords, _)| *coords)
+        {
+            Ok(i) => Some(&mut self.points[i].1),
             Err(_) => None,
         }
     }
