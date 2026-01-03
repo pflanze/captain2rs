@@ -15,21 +15,28 @@ Trying to implement small parts of [captain2](https://github.com/captain-project
 
 ### Run the Rust-only tests
 
-From the nested captain2rs subdirectory:
+Run:
 
 ```shell
-~/captain2rs/captain2rs$ cargo test --release
+cargo test --release
+```
+
+If there are any errors, run (but note that this disables slow tests,
+hopefully the errors weren't in those; otherwise re-add the
+`--release` option and if necessary change the Cargo.toml file to add
+debug information to release builds):
+
+```shell
+RUST_BACKTRACE=1 cargo test
 ```
 
 ### Build the library to use from Python
 
-From the nested captain2rs subdirectory:
-
 ```shell
-~/captain2rs/captain2rs$ python3 -m venv --system-site-packages .venv
-~/captain2rs/captain2rs$ source `pwd`/.venv/bin/activate
-~/captain2rs/captain2rs$ maturin develop --release
-~/captain2rs/captain2rs$ ./test
+python3 -m venv --system-site-packages .venv
+source `pwd`/.venv/bin/activate
+maturin develop --release
+./test
 ```
 
 See [Distribution - Maturin User Guide](https://www.maturin.rs/distribution) for alternaties to the local installation approach above (virtual env and `maturin develop --release`).
