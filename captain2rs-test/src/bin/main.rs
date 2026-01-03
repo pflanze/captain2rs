@@ -7,8 +7,7 @@ fn main() -> Result<()> {
     let debug = true;
     if debug {
         let mut x = dispersal_distances_threshold(3, 0.1, 1, false, None);
-        x.insert_unordered([0, 1, 0, 2], 1.23456);
-        x.sort()?;
+        x.set([0, 1, 0, 2], 1.23456)?;
         assert_eq!(x[[0, 2, 3, 4]], 0.);
         dbg!(&x);
     }
@@ -24,8 +23,8 @@ fn main() -> Result<()> {
         assert_eq!(x[[0, 2, 4, 5]], 6.993);
         x.insert_unordered([999, 1000, 3, 4], 1.3);
         assert!(x.is_sorted());
-        x.insert_unordered([0, 2, 3, 4], 1.2);
-        assert!(!x.is_sorted());
+        x.set([0, 2, 3, 4], 1.2)?;
+        assert!(x.is_sorted());
 
         let slow = true;
         if slow {
