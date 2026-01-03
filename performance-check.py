@@ -9,7 +9,7 @@ import numpy as np
 import sparse
 
 from captain2rs import (dispersal_distances_threshold_rs, num_candidates_rs,
-                        DispersalDistancesThreshold)
+                        Dispersal)
 
 floattype=np.float64
 
@@ -55,7 +55,7 @@ def bench_einsum():
           ])
 
 def bench_rust_python():
-    ddt=DispersalDistancesThreshold(lambda_0=2.3, threshold=threshold)
+    ddt=Dispersal(lambda_0=2.3, threshold=threshold)
     return np.array(
           [
               ddt.map(lambda x: x ** (1 / lambda_0[i])).apply(h[i])
