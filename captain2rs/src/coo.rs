@@ -53,8 +53,11 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
     }
 
     /// Does not gives an error if the coordinates are not after those
-    /// lsat inserted, but marks the tensor as unsorted (must be
-    /// sorted before it can be used for retrievals)
+    /// last inserted, but marks the tensor as unsorted (it must then
+    /// be sorted before it can be used for retrievals or
+    /// overwrites). Note: does *not* allow overwrites: writing to a
+    /// coordinate that was already set will lead to a duplicate value
+    /// error the next time the tensor is sorted.
     pub fn insert_unordered<C0>(&mut self, coords: [C0; D], val: V)
     where
         C: From<C0>,
@@ -87,8 +90,7 @@ impl<C: PrimInt + Debug, const D: usize, V> Coo<C, D, V> {
 
     pub fn sort(&mut self) -> Result<()> {
         if !self.is_sorted {
-            self.points.sort_by(|(c1, _), (c2, _)| c1.cmp(c2));
-            // XX should  just 'do overwrites'  i.e. drop older entries, gll. b how  algo for sort.
+            self.points.sort_unstable_by(|(c1, _), (c2, _)| c1.cmp(c2));
             self.check()?;
             self.is_sorted = true;
         }
