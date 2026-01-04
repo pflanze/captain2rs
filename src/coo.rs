@@ -1,6 +1,6 @@
 use std::{fmt::Debug, ops::Index};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use num_traits::PrimInt;
 
 /// C is the type of the coordinate components, D is the

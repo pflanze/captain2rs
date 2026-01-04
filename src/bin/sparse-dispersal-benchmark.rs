@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use captain2rs::{
     biodivsim::{div::Float, sparse_dispersal::SparseDispersal},
     clone, clone_arc, perhaps_dump,

@@ -12,7 +12,7 @@
 
 use std::{
     fmt::Debug,
-    mem::{transmute, MaybeUninit},
+    mem::{MaybeUninit, transmute},
     sync::Arc,
 };
 
@@ -780,7 +780,7 @@ def_array_opassign! { DivAssign, div_assign, /= }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::{anyhow, Result};
+    use anyhow::{Result, anyhow};
     use numpy::array;
     use rand::Rng;
     use rand_distr::Weibull;

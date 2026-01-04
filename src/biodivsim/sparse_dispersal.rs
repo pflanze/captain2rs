@@ -9,8 +9,8 @@ use ndarray::ArrayView2;
 use crate::{
     _dispersal_dispatch,
     biodivsim::{
-        dispersal::{len_from_threshold, Dispersal},
-        div::{bounded_range_around_w_clipped, FlippedBoundedRangesAround, Float},
+        dispersal::{Dispersal, len_from_threshold},
+        div::{FlippedBoundedRangesAround, Float, bounded_range_around_w_clipped},
     },
     perhaps_dump,
     sparse::{Sparse, SparseFromViewAndMaskError, SparseMask},

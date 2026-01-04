@@ -1,17 +1,17 @@
 use std::fmt::Debug;
-use std::mem::{transmute, MaybeUninit};
+use std::mem::{MaybeUninit, transmute};
 use std::ops::Range;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use ndarray::parallel::prelude::*;
 use ndarray::{Array2, Array3, ArrayBase, ArrayView2, ArrayViewMut2, Axis, Dim, ViewRepr};
 use numpy::{
-    pyo3::{prelude::*, pyclass},
     PyArray2, PyArray3, PyReadonlyArray,
+    pyo3::{prelude::*, pyclass},
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::biodivsim::div::{square, FlippedBoundedRangesAround, Float};
+use crate::biodivsim::div::{FlippedBoundedRangesAround, Float, square};
 use crate::dump::perhaps_dump_iteration_i;
 
 #[macro_export]

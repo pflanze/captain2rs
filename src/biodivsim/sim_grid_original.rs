@@ -1,7 +1,7 @@
 use ndarray::ArrayView2;
 
 use crate::{
-    biodivsim::div::{bounded_range_around, Float},
+    biodivsim::div::{Float, bounded_range_around},
     coo::Coo,
 };
 

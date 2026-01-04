@@ -3,12 +3,12 @@ use std::fmt::Debug;
 use ndarray::ArrayD;
 use num_traits::PrimInt;
 use numpy::{
+    PyArray1, PyArrayDyn,
     pyo3::{
+        Bound, IntoPyObject, PyAny, PyResult, Python,
         prelude::*,
         types::{PyAnyMethods, PyDict},
-        Bound, IntoPyObject, PyAny, PyResult, Python,
     },
-    PyArray1, PyArrayDyn,
 };
 
 use crate::coo::Coo;

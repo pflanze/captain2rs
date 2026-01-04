@@ -15,7 +15,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 #[pymodule]
 mod captain2rs {
-    use numpy::{pyo3::prelude::*, PyReadonlyArray};
+    use numpy::{PyReadonlyArray, pyo3::prelude::*};
 
     use crate::biodivsim::{
         div::Float,
@@ -59,7 +59,7 @@ mod captain2rs {
     }
 
     #[pymodule_export]
-    use super::biodivsim::dispersal::num_candidates_rs;
-    #[pymodule_export]
     use super::biodivsim::dispersal::Dispersal;
+    #[pymodule_export]
+    use super::biodivsim::dispersal::num_candidates_rs;
 }
