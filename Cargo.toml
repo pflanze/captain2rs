@@ -22,6 +22,8 @@ thiserror = "1.0.37"
 #kstring = "1.0.6"
 mimalloc = "0.1.43"
 enum-map = "2.6.0"
+noisy_float = { version = "0.2.0" }
+# ^ , features = ["serde"]
 
 ndarray = { version = "0.15.6", features = ["rayon"] }
 rand = "0.8.5"
