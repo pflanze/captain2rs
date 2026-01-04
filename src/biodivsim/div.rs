@@ -1,6 +1,15 @@
 use std::ops::{Mul, Range};
 
+use noisy_float::types::R64;
+
 pub type Float = f64;
+pub type RealFloat = R64;
+
+const fn enforce_realfloat_to_float_relation() {
+    const {
+        assert!(size_of::<Float>() == size_of::<RealFloat>());
+    }
+}
 
 #[inline]
 pub fn square<Number: Mul + Copy>(x: Number) -> Number::Output {

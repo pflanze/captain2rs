@@ -1,6 +1,9 @@
 use anyhow::{Result, anyhow};
 use captain2rs::{
-    biodivsim::{div::Float, sparse_dispersal::SparseDispersal},
+    biodivsim::{
+        div::{Float, RealFloat},
+        sparse_dispersal::SparseDispersal,
+    },
     clone, clone_arc, perhaps_dump,
     sparse::Sparse,
     timing::show_current_timing,
@@ -14,7 +17,7 @@ fn main() -> Result<()> {
     // Parameters:
     let width = 1000;
     let height = 800;
-    let lambda0 = 0.5;
+    let lambda0: RealFloat = 0.5.try_into().expect("is not a NaN");
     let threshold = 3;
     let equalize = false;
     let num_threads = 16; // I have 16 cores, 32 virtual threads

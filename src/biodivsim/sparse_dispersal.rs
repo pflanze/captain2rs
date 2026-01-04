@@ -10,7 +10,7 @@ use crate::{
     _dispersal_dispatch,
     biodivsim::{
         dispersal::{Dispersal, len_from_threshold},
-        div::{FlippedBoundedRangesAround, Float, bounded_range_around_w_clipped},
+        div::{FlippedBoundedRangesAround, Float, RealFloat, bounded_range_around_w_clipped},
     },
     perhaps_dump,
     sparse::{Sparse, SparseFromViewAndMaskError, SparseMask},
@@ -33,8 +33,8 @@ impl SparseDispersal {
     /// Carries the cost of creating the threshold cache and
     /// especially weights matrix of the same size as the image, as
     /// well as its compression.
-    pub fn new(lambda_0: Float, threshold: usize, mask: Arc<SparseMask>) -> Self {
-        let dispersal = Dispersal::new(lambda_0, threshold);
+    pub fn new(lambda_0: RealFloat, threshold: usize, mask: Arc<SparseMask>) -> Self {
+        let dispersal = Dispersal::new(lambda_0.into(), threshold);
 
         // The weight at each point comes from calculating the
         // convolution over 0 (for sparse points) and 1 (for
@@ -205,7 +205,7 @@ mod tests {
         assert_eq!(mask.height(), 6);
         assert_eq!(mask.total_count_data(), 12);
 
-        let dispersal = SparseDispersal::new(2.3, 1, mask.clone_arc());
+        let dispersal = SparseDispersal::new(2.3.try_into().unwrap(), 1, mask.clone_arc());
         if false {
             dbg!(dispersal.cache());
             let weights = dispersal.weights().decompress(0.);
@@ -271,7 +271,8 @@ mod tests {
         assert_eq!(mask.height(), 4);
         assert_eq!(mask.total_count_data(), 11);
 
-        let dispersal = SparseDispersal::new(lambda_0, threshold, mask.clone_arc());
+        let dispersal =
+            SparseDispersal::new(lambda_0.try_into().unwrap(), threshold, mask.clone_arc());
         dbg!(dispersal.cache());
         let weights = dispersal.weights().decompress(0.);
         dbg!(weights);
