@@ -4,6 +4,7 @@ pub mod coo;
 pub mod coo_numpy;
 pub mod dump;
 pub mod evaluation_cache;
+pub mod id_vec;
 pub mod sparse;
 pub mod timing;
 pub mod utillib;
