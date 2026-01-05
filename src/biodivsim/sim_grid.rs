@@ -2,22 +2,24 @@
 //! old direct translations, see
 //! [sim_grid_original.rs](sim_grid_original.rs).
 
-use std::{ops::Range, sync::Arc};
+use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use anyhow::bail;
 use enum_map::EnumMap;
 use ndarray::{Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis};
+use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
 use crate::{
     biodivsim::{
         div::{Float, RealFloat},
-        sparse_dispersal::SparseDispersal,
+        sparse_dispersal::{SparseDispersal, SparseDispersalApplyError},
     },
     debug, def_id_vec_id,
     evaluation_cache::{EvalForCache, EvaluationCache},
     id_vec::IdVec,
     sparse::{Sparse, SparseMask},
     utillib::arc::CloneArc,
+    warn,
 };
 
 pub trait PickleInitializer {
@@ -78,7 +80,7 @@ pub struct SimGridParamsWithoutDefaults {
     alpha: Float,
     /// initial (max) carrying capacity
     k_max: Float,
-    lambda_0: Float,
+    dispersal_parameters: IdVec<OrganismId, DispersalParameters>,
     disturbance_initializer: Float, // XX?
     /// vector of sensitivity per species
     disturbance_sensitivity: Array1<Float>, // XX? XX also,  species as a key type wrap?
@@ -219,13 +221,9 @@ struct Grid {
     // Was:
     // dumping_dist: SparseDispersal,
     // now:
-    /// A cache of `SparseDispersal` datastructures for all
-    /// `DispersalParameters` as determined by the organisms.
-    dispersal_cache: EvaluationCache<
-        DispersalParameters,
-        SparseDispersal,
-        EnumMap<OrganismKind, Arc<SparseMask>>,
-    >,
+    /// A pre-generated cache of `SparseDispersal` datastructures for
+    /// all `DispersalParameters` as determined by the organisms.
+    dispersals: HashMap<DispersalParameters, SparseDispersal>,
 }
 
 /// Mutated values
@@ -402,6 +400,20 @@ impl SimGrid {
         if self.doing_dispersal_before_death() {
             // np.einsum("sij,ijnm->snm", self._h, self._dumping_dist)
             // let num_candidates =
+            if let Some(grid) = &mut self.grid {
+                grid.h.par_iter_mut_enumerated().for_each(|(id, h)| {
+                    let params = &self.params_without_defaults.dispersal_parameters[id];
+                    let dispersal = &grid.dispersals[params];
+                    match dispersal.apply_mut(h, true) {
+                        Ok(()) => (),
+                        Err(SparseDispersalApplyError::NotEqMask) => {
+                            panic!("we ensure the masks match")
+                        }
+                    }
+                });
+            } else {
+                warn!("have no grid!");
+            }
         }
         todo!();
 
