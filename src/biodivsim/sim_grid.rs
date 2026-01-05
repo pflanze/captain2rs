@@ -268,10 +268,7 @@ impl SimGrid {
     ) -> Self {
         let length = params_without_defaults.length;
 
-        let zeros2d_of_length = { move || Array2::zeros((length, length)) };
-        let ones2d_of_length = { move || Array2::ones((length, length)) };
-
-        let disturbance_matrix = zeros2d_of_length();
+        let disturbance_matrix = Array2::zeros((length, length));
         let k_cells = (1. - &disturbance_matrix) * params_without_defaults.k_max;
 
         let alpha_histogram = calculate_alpha_histogram(
@@ -283,7 +280,10 @@ impl SimGrid {
             if let Some(tuple) = params_with_defaults.actions.take() {
                 tuple
             } else {
-                (zeros2d_of_length(), zeros2d_of_length())
+                (
+                    Array2::zeros((length, length)),
+                    Array2::zeros((length, length)),
+                )
             };
 
         let selective_alpha_histogram = calculate_alpha_histogram(
@@ -293,12 +293,12 @@ impl SimGrid {
 
         let mut climate_model = ClimateModel::new(params_with_defaults.climate_model);
         let climate_layer = if params_with_defaults.climate_model == ClimateModelKind(0) {
-            zeros2d_of_length()
+            Array2::zeros((length, length))
         } else {
             if params_with_defaults.climate_as_disturbance {
-                climate_model.update_climate(zeros2d_of_length())
+                climate_model.update_climate(Array2::zeros((length, length)))
             } else {
-                climate_model.update_climate(ones2d_of_length())
+                climate_model.update_climate(Array2::ones((length, length)))
             }
         };
 
@@ -308,7 +308,7 @@ impl SimGrid {
         let species_carbon_value = Array1::ones(params_without_defaults.num_species);
         // >1 to fast-forward effect of disturbance
         let disturbance_effect_multiplier = 1.;
-        let additional_carbon_matrix = zeros2d_of_length();
+        let additional_carbon_matrix = Array2::zeros((length, length));
         // let dumping_dist = params_without_defaults.precomputed_dispersal_probs.clone();
 
         let reference_grid_pu = None;
