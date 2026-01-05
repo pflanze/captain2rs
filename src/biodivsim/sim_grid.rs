@@ -74,7 +74,7 @@ pub struct SimGridParamsWithoutDefaults {
     species_ids: Range<usize>,
     alpha: Float,
     /// initial (max) carrying capacity
-    k_max: Array2<Float>, // XX?
+    k_max: Float,
     lambda_0: Float,
     disturbance_initializer: Float, // XX?
     /// vector of sensitivity per species
@@ -227,6 +227,8 @@ struct Grid {
 
 /// Mutated values
 struct SimGridState {
+    /// (max) carrying capacity -- XX same for all organisms?
+    k_max: Array2<Float>,
     counter: usize,
 }
 
@@ -264,17 +266,13 @@ impl SimGrid {
         params_without_defaults: SimGridParamsWithoutDefaults,
         mut params_with_defaults: SimGridParamsWithDefaults,
     ) -> Self {
-        let zeros2d_of_length = {
-            let length = params_without_defaults.length;
-            move || Array2::zeros((length, length))
-        };
-        let ones2d_of_length = {
-            let length = params_without_defaults.length;
-            move || Array2::ones((length, length))
-        };
+        let length = params_without_defaults.length;
+
+        let zeros2d_of_length = { move || Array2::zeros((length, length)) };
+        let ones2d_of_length = { move || Array2::ones((length, length)) };
 
         let disturbance_matrix = zeros2d_of_length();
-        let k_cells = (1. - &disturbance_matrix) * &params_without_defaults.k_max;
+        let k_cells = (1. - &disturbance_matrix) * params_without_defaults.k_max;
 
         let alpha_histogram = calculate_alpha_histogram(
             params_without_defaults.disturbance_sensitivity.view(),
@@ -316,6 +314,8 @@ impl SimGrid {
         let reference_grid_pu = None;
         let n_pus = None;
 
+        let k_max = params_without_defaults.k_max * Array2::ones((length, length));
+
         Self {
             params_without_defaults,
             params_with_defaults,
@@ -335,7 +335,7 @@ impl SimGrid {
                 protection_matrix,
             },
             grid: None,
-            state: SimGridState { counter: 0 },
+            state: SimGridState { k_max, counter: 0 },
         }
     }
 
@@ -355,7 +355,7 @@ impl SimGrid {
 
         // random histogram
         let h = state_initializer.get_initial_state(
-            self.params_without_defaults.k_max.view(),
+            self.state.k_max.view(),
             self.params_without_defaults.num_species,
             self.params_without_defaults.length,
         );
