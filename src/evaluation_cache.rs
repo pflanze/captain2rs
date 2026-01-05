@@ -58,4 +58,10 @@ impl<K: EvalForCache<V, C>, V, C> EvaluationCache<K, V, C> {
             }
         }
     }
+
+    /// Finish filling entries on the fly, offer as a fixed HashMap
+    /// instead. (XX wrap to avoid mut?)
+    pub fn closed(self) -> HashMap<K, V> {
+        self.entries
+    }
 }
