@@ -13,8 +13,9 @@ use crate::{
         div::{Float, RealFloat},
         sparse_dispersal::SparseDispersal,
     },
+    debug,
     evaluation_cache::{EvalForCache, EvaluationCache},
-    sparse::SparseMask,
+    sparse::{Sparse, SparseMask},
     utillib::arc::CloneArc,
 };
 
@@ -92,7 +93,7 @@ pub struct SimGridParamsWithDefaults {
     species_threshold: Float,
     rnd_alpha: Float,           // XX?
     k_disturbance_coeff: Float, // XX?
-    /// (cj:) take out and moved to
+    /// (cj:) taken out and moved to
     /// SimGrids.{selective_disturbance_matrix, protection_matrix} in
     /// SimGrid::new
     actions: Option<(Array2<Float>, Array2<Float>)>,
@@ -162,7 +163,7 @@ impl SimGridParamsWithDefaults {
     }
 }
 
-/// Derived but static values
+/// Derived but constant values
 struct SimGridDerived {
     disturbance_matrix: Array2<Float>,
     k_cells: Array2<Float>,
@@ -206,8 +207,12 @@ impl EvalForCache<SparseDispersal, EnumMap<OrganismKind, Arc<SparseMask>>> for D
 
 /// Initialized via `SimGrid::init_grid`
 struct Grid {
-    /// XX-histogram for each organism
-    h: Array3<Float>,
+    // was:
+    // h: Array3<Float>,
+    // now:
+    /// Organism concentrations for each organism
+    h: Vec<Sparse<Float>>,
+
     // Was:
     // dumping_dist: SparseDispersal,
     // now:
@@ -232,6 +237,20 @@ pub struct SimGrid {
     grid: Option<Grid>,
     state: SimGridState,
 }
+
+// #[test]
+// fn t_simgrid_size() {
+//     assert_eq!(size_of::<SimGridParamsWithoutDefaults>(), 192); // not 96
+//     assert_eq!(size_of::<SimGridParamsWithDefaults>(), 384); // not 160
+//     assert_eq!(size_of::<SimGridDerived>(), 608); // not 104
+//     assert_eq!(size_of::<Grid>(), 144); // not 56. 144 = 18 words
+//     assert_eq!(size_of::<SimGridState>(), 8);
+//     assert_eq!(size_of::<SimGrid>(), 1336);
+//     assert_eq!(size_of::<Array3<Float>>(), 80); // not 8 or 24
+//     assert_eq!(size_of::<Array2<Float>>(), 64);
+//     assert_eq!(size_of::<Array1<Float>>(), 48);
+//     assert_eq!(size_of::<Vec<Float>>(), 24);
+// }
 
 pub struct StepOptions {
     action: Option<Unknown>,
@@ -327,6 +346,7 @@ impl SimGrid {
         }
     }
 
+    /// XX initialize with random data? todo: rename method accordingly?
     pub fn init_grid(&mut self, state_initializer: impl PickleInitializer) {
         // XX println!(
         //     "\nself._dumping_dist {:?}",
@@ -341,7 +361,7 @@ impl SimGrid {
         );
         // init dumping factors (unless already provided)
         if let Some(grid) = &mut self.grid {
-            grid.h = h;
+            grid.h = sparse_h_from_array3(h);
         } else {
             todo!()
             // self.grid = Some(Grid {
@@ -365,22 +385,24 @@ impl SimGrid {
         }
     }
 
-    pub fn step(&mut self, options: StepOptions) {
+    pub fn step(&mut self, options: &StepOptions) {
         let StepOptions {
             action,
             fast_dist,
             skip_dispersal,
             update_suitability,
         } = options;
-        //XX debug!("getting NumCandidates");
+        debug!("getting NumCandidates");
 
         // let num_candidates;
         // let norm_candidates;
-        // if self.doing_dispersal_before_death() {
-        //     // np.einsum("sij,ijnm->snm", self._h, self._dumping_dist)
-        //     // let num_candidates =
-        // }
-        todo!()
+        if self.doing_dispersal_before_death() {
+            // np.einsum("sij,ijnm->snm", self._h, self._dumping_dist)
+            // let num_candidates =
+        }
+        todo!();
+
+        self.state.counter += 1;
     }
 }
 
@@ -423,4 +445,8 @@ fn t_calculate_alpha_histogram() {
         [[0.05, 0.5, 0.25], [0.0, 0.2, 0.3]]
     ];
     assert_eq!(&r, &expected);
+}
+
+fn sparse_h_from_array3(h: Array3<Float>) -> Vec<Sparse<Float>> {
+    todo!()
 }
