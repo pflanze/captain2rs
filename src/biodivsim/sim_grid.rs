@@ -50,6 +50,7 @@ impl ClimateModel {
 }
 
 pub enum GrowthRate {
+    // Vector of the same length of species
     BelowNumSpecies(Array1<Float>),
     FromNumSpecies(Float),
 }
@@ -80,7 +81,7 @@ pub struct SimGridParamsWithoutDefaults {
     alpha: Float,
     /// initial (max) carrying capacity
     k_max: Float,
-    dispersal_parameters: IdVec<OrganismId, DispersalParameters>,
+    dispersal_parameters: IdVec<OrganismId, Float>,
     disturbance_initializer: Float, // XX?
     /// vector of sensitivity per species
     disturbance_sensitivity: Array1<Float>, // XX? XX also,  species as a key type wrap?
@@ -113,15 +114,23 @@ pub struct SimGridParamsWithDefaults {
     /// Unimplemented (in parts?)
     disturbance_dep_dispersal: bool, // XX? Python uses it as a boolean, but initialized to 1
     species_cell_specific_capacity: Option<Unknown>, // XX?
-    habitat_suitability: Option<Unknown>, // XX?
+
+    /// How suitable a pixel is for a given species
+    habitat_suitability: Option<IdVec<OrganismId, Array2<Float>>>,
+    // Daniele: not used here?
     future_habitat_suitability: Option<Unknown>, // XX?
-    delta_suitability_per_step: Option<Unknown>, // XX?
-    species_threshold_per_cell: Float,  // XX?
-    precomputed_dispersal_probs: Option<Unknown>, // XX?
-    /// max number of individuals of a species per cell
-    k_species: Option<Array1<Float>>, // XX?
+    /// Climate change: multiplier per step(?) for habitat_suitability
+    delta_suitability_per_step: Option<IdVec<OrganismId, Array2<Float>>>,
+
+    /// Individuals (but float), to detect/decide whether a species is present. Probably 1.
+    species_threshold_per_cell: Float,
+
+    /// max number of individuals of a species per cell -- used!
+    k_species: Option<IdVec<OrganismId, Float>>,
     rm_lingering_pops: bool,
-    species_ids: Option<Unknown>,
+
+    /// The names of species
+    species_ids: Option<IdVec<OrganismId, String>>,
 }
 
 impl Default for SimGridParamsWithDefaults {
@@ -195,14 +204,12 @@ enum OrganismKind {
 /// (cj:) Parameters for SparseDispersal::new
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct DispersalParameters {
-    organism_kind: OrganismKind,
     lambda_0: RealFloat,
 }
 
 impl EvalForCache<SparseDispersal, EnumMap<OrganismKind, Arc<SparseMask>>> for DispersalParameters {
     fn eval(&self, masks: &EnumMap<OrganismKind, Arc<SparseMask>>) -> SparseDispersal {
         let Self {
-            organism_kind,
             lambda_0,
         } = self;
         let threshold = 3; // XX todo: calculate from lambda_0
@@ -219,7 +226,7 @@ struct Grid {
     h: IdVec<OrganismId, Sparse<Float>>,
 
     // Was:
-    // dumping_dist: SparseDispersal,
+    // dumping_dist: Array4<Float>,
     // now:
     /// A pre-generated cache of `SparseDispersal` datastructures for
     /// all `DispersalParameters` as determined by the organisms.
@@ -228,7 +235,7 @@ struct Grid {
 
 /// Mutated values
 struct SimGridState {
-    /// (max) carrying capacity -- XX same for all organisms?
+    /// (max) carrying capacity -- same for all organisms.
     k_max: Array2<Float>,
     counter: usize,
 }
@@ -397,7 +404,7 @@ impl SimGrid {
 
         // let num_candidates;
         // let norm_candidates;
-        if self.doing_dispersal_before_death() {
+        if ! self.doing_dispersal_before_death() {
             // np.einsum("sij,ijnm->snm", self._h, self._dumping_dist)
             // let num_candidates =
             if let Some(grid) = &mut self.grid {
