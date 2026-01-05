@@ -13,8 +13,9 @@ use crate::{
         div::{Float, RealFloat},
         sparse_dispersal::SparseDispersal,
     },
-    debug,
+    debug, def_id_vec_id,
     evaluation_cache::{EvalForCache, EvaluationCache},
+    id_vec::IdVec,
     sparse::{Sparse, SparseMask},
     utillib::arc::CloneArc,
 };
@@ -25,6 +26,8 @@ pub trait PickleInitializer {
 
 // #[derive(Debug)]
 // struct UnknownPickleInitializer;
+
+def_id_vec_id! {pub OrganismId}
 
 #[derive(Debug)]
 struct Unknown;
@@ -211,7 +214,7 @@ struct Grid {
     // h: Array3<Float>,
     // now:
     /// Organism concentrations for each organism
-    h: Vec<Sparse<Float>>,
+    h: IdVec<OrganismId, Sparse<Float>>,
 
     // Was:
     // dumping_dist: SparseDispersal,
@@ -447,6 +450,6 @@ fn t_calculate_alpha_histogram() {
     assert_eq!(&r, &expected);
 }
 
-fn sparse_h_from_array3(h: Array3<Float>) -> Vec<Sparse<Float>> {
-    todo!()
+fn sparse_h_from_array3(h: Array3<Float>) -> IdVec<OrganismId, Sparse<Float>> {
+    todo!("hmm where are coords?")
 }
