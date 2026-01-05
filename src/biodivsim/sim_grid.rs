@@ -194,17 +194,17 @@ enum OrganismKind {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct DispersalParameters {
     organism_kind: OrganismKind,
-    lambda: RealFloat,
+    lambda_0: RealFloat,
 }
 
 impl EvalForCache<SparseDispersal, EnumMap<OrganismKind, Arc<SparseMask>>> for DispersalParameters {
     fn eval(&self, masks: &EnumMap<OrganismKind, Arc<SparseMask>>) -> SparseDispersal {
         let Self {
             organism_kind,
-            lambda,
+            lambda_0,
         } = self;
-        let threshold = 3; // XX todo: calculate from lambda
-        SparseDispersal::new(*lambda, threshold, masks[*organism_kind].clone_arc())
+        let threshold = 3; // XX todo: calculate from lambda_0
+        SparseDispersal::new(*lambda_0, threshold, masks[*organism_kind].clone_arc())
     }
 }
 

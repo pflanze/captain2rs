@@ -163,7 +163,7 @@ impl SparseDispersal {
     /// the same mask. If `equalize` is true, then a (relatively
     /// cheap) post-processing step is applied to ensure that the sum
     /// over all values stays the same (you likely want this, unless
-    /// you choose a small lambda and use small time steps).
+    /// you choose a small lambda_0 and use small time steps).
     pub fn apply_mut(
         &self,
         a: &mut Sparse<Float>,
