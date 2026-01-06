@@ -15,6 +15,7 @@ use crate::{
     },
     debug, def_id,
     evaluation_cache::EvalForCache,
+    id_array::{IdArray1, IdArray3},
     id_vec::IdVec,
     sparse::{Sparse, SparseMask},
     utillib::arc::CloneArc,
@@ -115,19 +116,19 @@ pub struct SimGridParamsWithDefaults {
     species_cell_specific_capacity: Option<Unknown>, // XX?
 
     /// How suitable a pixel is for a given species
-    habitat_suitability: Option<IdVec<OrganismId, Array2<Float>>>,
+    habitat_suitability: Option<IdArray3<OrganismId, Float>>,
 
     // (Daniele: not used here?)
     future_habitat_suitability: Option<Unknown>,
 
     /// Climate change: multiplier per step(?) for habitat_suitability
-    delta_suitability_per_step: Option<IdVec<OrganismId, Array2<Float>>>,
+    delta_suitability_per_step: Option<IdArray3<OrganismId, Float>>,
 
     /// Individuals (but float), to detect/decide whether a species is present. Probably 1.
     species_threshold_per_cell: Float,
 
     /// max number of individuals of a species per cell -- used!
-    k_species: Option<IdVec<OrganismId, Float>>,
+    k_species: Option<IdArray1<OrganismId, Float>>,
 
     rm_lingering_pops: bool,
 
@@ -170,11 +171,10 @@ impl SimGridParamsWithDefaults {
     /// np.newaxis] * habitat_suitability")
     pub fn k_species3d(&self) -> Option<ArrayView3<'_, Float>> {
         self.k_species.as_ref().map(|k_species| {
-            // k_species
-            //     .view()
-            //     .into_shape((k_species.len(), 1, 1))
-            //     .expect("compatible statically")
-            todo!()
+            k_species
+                .view()
+                .into_shape((k_species.len(), 1, 1))
+                .expect("compatible statically")
         })
     }
 }
