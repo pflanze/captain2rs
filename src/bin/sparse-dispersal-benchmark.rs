@@ -5,7 +5,7 @@ use captain2rs::{
         sparse_dispersal::SparseDispersal,
     },
     clone, clone_arc, perhaps_dump,
-    sparse::Sparse,
+    sparse::Sparse2,
     timing::show_current_timing,
     utillib::arc::{CloneArc, IntoArc},
 };
@@ -57,13 +57,13 @@ fn main() -> Result<()> {
 
     let timing = show_current_timing(true, None, "compress+dispersal".into());
 
-    let c0 = Sparse::from_view_and_pred(ar.view(), |x| x == 0.)?.into_arc();
+    let c0 = Sparse2::from_view_and_pred(ar.view(), |x| x == 0.)?.into_arc();
     let mask = c0.mask().clone_arc();
     let dispersal = SparseDispersal::new(lambda0, threshold, mask.clone_arc()).into_arc();
 
     show_current_timing(true, timing, "END".into());
 
-    let run_bench = move |mut c: Sparse<Float>, run_no: u64, i: usize| -> Result<()> {
+    let run_bench = move |mut c: Sparse2<Float>, run_no: u64, i: usize| -> Result<()> {
         let timing =
             show_current_timing(true, None, format!("apply 10 times in {run_no}/{i}").into());
 

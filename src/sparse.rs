@@ -94,7 +94,7 @@ pub struct SparseMask {
     /// To get the slices of `strides` and `data`
     row_index: Box<[StridesRowIndex]>,
     /// The number of non-sparse data points (i.e. the length of the
-    /// `data` array in `Sparse`)
+    /// `data` array in `Sparse2`)
     total_count_data: TotalCount,
 }
 
@@ -261,7 +261,7 @@ impl SparseMask {
     // (Array1::ones(count) is unnecessary if writing code that doesn't need it.)
     pub fn to_ones_and_zeros<T: Copy + One + Zero>(self: Arc<Self>) -> Array2<T> {
         let count = self.total_count_data() as usize;
-        Sparse::from_mask_and_data(self, Array1::ones(count))
+        Sparse2::from_mask_and_data(self, Array1::ones(count))
             .unwrap_or_else(|SparseCheckError::NonMatchingDataCount| {
                 unreachable!("fits because we constructed it that way")
             })
@@ -270,7 +270,7 @@ impl SparseMask {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Sparse<T> {
+pub struct Sparse2<T> {
     mask: Arc<SparseMask>,
     data: Array1<T>,
 }
@@ -305,7 +305,7 @@ pub struct SparseStats {
     pub data_bytes: usize,
 }
 
-impl<T> Sparse<T> {
+impl<T> Sparse2<T> {
     /// Create from mask and matching already-compressed data (cheap,
     /// no copying is done). Returns an error if the length of `data`
     /// does not match the number of expected points as per the mask.
@@ -366,7 +366,7 @@ impl<T> Sparse<T> {
         let mut data = Vec::new();
         let mask = mask_and_data_from_view_and_pred(values, is_null, &mut data)?;
 
-        Ok(Sparse {
+        Ok(Sparse2 {
             mask: mask.into(),
             data: data.into(),
         })
@@ -686,69 +686,69 @@ macro_rules! def_array_binop {
 
         // With itself
 
-        impl<T: LinalgScalar> $Op for &Sparse<T> {
-            type Output = Sparse<T>;
+        impl<T: LinalgScalar> $Op for &Sparse2<T> {
+            type Output = Sparse2<T>;
 
             fn $method(self, rhs: Self) -> Self::Output {
-                let Sparse { mask, data } = self;
+                let Sparse2 { mask, data } = self;
                 let data = data $op &rhs.data;
                 clone_arc!(mask);
-                Sparse { mask, data }
+                Sparse2 { mask, data }
             }
         }
-        impl<T: LinalgScalar> $Op for Sparse<T> {
-            type Output = Sparse<T>;
+        impl<T: LinalgScalar> $Op for Sparse2<T> {
+            type Output = Sparse2<T>;
 
             fn $method(self, rhs: Self) -> Self::Output {
-                let Sparse { mask, data } = self;
+                let Sparse2 { mask, data } = self;
                 let data = data $op rhs.data;
-                Sparse { mask, data }
+                Sparse2 { mask, data }
             }
         }
-        impl<T: LinalgScalar> $Op<&Sparse<T>> for Sparse<T> {
-            type Output = Sparse<T>;
+        impl<T: LinalgScalar> $Op<&Sparse2<T>> for Sparse2<T> {
+            type Output = Sparse2<T>;
 
-            fn $method(self, rhs: &Sparse<T>) -> Self::Output {
-                let Sparse { mask, data } = self;
+            fn $method(self, rhs: &Sparse2<T>) -> Self::Output {
+                let Sparse2 { mask, data } = self;
                 let data = data $op &rhs.data;
-                Sparse { mask, data }
+                Sparse2 { mask, data }
             }
         }
-        impl<T: LinalgScalar> $Op<Sparse<T>> for &Sparse<T> {
-            type Output = Sparse<T>;
+        impl<T: LinalgScalar> $Op<Sparse2<T>> for &Sparse2<T> {
+            type Output = Sparse2<T>;
 
-            fn $method(self, rhs: Sparse<T>) -> Self::Output {
-                let Sparse { mask: _, data } = self;
+            fn $method(self, rhs: Sparse2<T>) -> Self::Output {
+                let Sparse2 { mask: _, data } = self;
                 let data = data $op rhs.data;
-                Sparse { mask: rhs.mask, data }
+                Sparse2 { mask: rhs.mask, data }
             }
         }
 
         // Any rhs for which $Op is implemented
 
-        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for &Sparse<T>
+        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for &Sparse2<T>
         where
             for<'a> &'a Array1<T>: $Op<T2, Output = Array1<T>>,
         {
-            type Output = Sparse<T>;
+            type Output = Sparse2<T>;
 
             fn $method(self, rhs: T2) -> Self::Output {
-                let Sparse { mask, data } = self;
+                let Sparse2 { mask, data } = self;
                 let data = data $op rhs;
                 clone_arc!(mask);
-                Sparse { mask, data }
+                Sparse2 { mask, data }
             }
         }
-        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for Sparse<T>
+        impl<T: LinalgScalar + ScalarOperand, T2: ScalarOperand> $Op<T2> for Sparse2<T>
         where
             Array1<T>: $Op<T2, Output = Array1<T>>,
         {
-            type Output = Sparse<T>;
+            type Output = Sparse2<T>;
 
             fn $method(self, rhs: T2) -> Self::Output {
-                let Sparse { mask, data } = self;
+                let Sparse2 { mask, data } = self;
                 let data = data $op rhs;
-                Sparse { mask, data }
+                Sparse2 { mask, data }
             }
         }
     }
@@ -763,7 +763,7 @@ macro_rules! def_array_opassign {
     { $Op:tt, $method:tt, $op:tt } => {
         use std::ops::$Op;
 
-        impl<T: LinalgScalar + ScalarOperand + $Op + Send + Sync> $Op<T> for Sparse<T> {
+        impl<T: LinalgScalar + ScalarOperand + $Op + Send + Sync> $Op<T> for Sparse2<T> {
             fn $method(&mut self, rhs: T) {
                 // par_azip!((x in &mut self.data) { *x $op rhs });
                 // Non-parallel is faster even with spare cores
@@ -793,9 +793,9 @@ mod tests {
 
     use super::*;
 
-    fn test_correctness(a: Array2<i32>, height: usize) -> Result<Sparse<i32>> {
+    fn test_correctness(a: Array2<i32>, height: usize) -> Result<Sparse2<i32>> {
         dbg!(&a);
-        let c = Sparse::from_view_and_pred(a.view(), |x| x == 0)?;
+        let c = Sparse2::from_view_and_pred(a.view(), |x| x == 0)?;
         for (row_a, row_c) in a.rows().into_iter().zip(c.rows(0)) {
             let row_a = row_a.as_slice().expect("possible");
             assert_eq!(row_a, &*row_c);
@@ -846,7 +846,7 @@ mod tests {
     #[test]
     fn t_row_iter() -> Result<()> {
         let a = array![[10, 11, 0, 14], [0, 0, 0, 13], [0, 0, 14, 0],];
-        let mut c = Sparse::from_view_and_pred(a.view(), |x| x == 0)?;
+        let mut c = Sparse2::from_view_and_pred(a.view(), |x| x == 0)?;
         {
             let mut it = c.row_iter_mut(0);
             let (x0, sl) = it.next().unwrap();
@@ -954,7 +954,7 @@ mod tests {
 
         // Runs one decompression, compression and streaming
         // decompression
-        let run_bench = move |c: &Sparse<f32>, run_no: u64, i: usize| -> Result<()> {
+        let run_bench = move |c: &Sparse2<f32>, run_no: u64, i: usize| -> Result<()> {
             let timing =
                 show_current_timing(true, None, format!("{run_no}/{i}: decompress").into());
 
@@ -963,7 +963,7 @@ mod tests {
             let timing =
                 show_current_timing(true, timing, format!("{run_no}/{i}: compress").into());
 
-            let c2 = Sparse::from_view_and_pred(dec.view(), |x| x == 0.)?;
+            let c2 = Sparse2::from_view_and_pred(dec.view(), |x| x == 0.)?;
 
             let timing = show_current_timing(true, timing, format!("{run_no}/{i}: verify").into());
 
@@ -990,7 +990,7 @@ mod tests {
             Ok(())
         };
 
-        let c = Sparse::from_view_and_pred(ar.view(), |x| x == 0.)?;
+        let c = Sparse2::from_view_and_pred(ar.view(), |x| x == 0.)?;
         {
             let dec = c.decompress(0.);
             assert_eq!(ar, dec);

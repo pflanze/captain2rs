@@ -17,7 +17,7 @@ use crate::{
     evaluation_cache::EvalForCache,
     id_array::{IdArray1, IdArray3},
     id_vec::IdVec,
-    sparse::{Sparse, SparseMask},
+    sparse::{Sparse2, SparseMask},
     utillib::arc::CloneArc,
     warn,
 };
@@ -223,7 +223,7 @@ struct Grid {
     // h: Array3<Float>,
     // now:
     /// Organism concentrations for each organism
-    h: IdVec<OrganismId, Sparse<Float>>,
+    h: IdVec<OrganismId, Sparse2<Float>>,
 
     // Was:
     // dumping_dist: Array4<Float>,
@@ -469,6 +469,6 @@ fn t_calculate_alpha_histogram() {
     assert_eq!(&r, &expected);
 }
 
-fn sparse_h_from_array3(h: Array3<Float>) -> IdVec<OrganismId, Sparse<Float>> {
+fn sparse_h_from_array3(h: Array3<Float>) -> IdVec<OrganismId, Sparse2<Float>> {
     todo!("hmm where are coords?")
 }

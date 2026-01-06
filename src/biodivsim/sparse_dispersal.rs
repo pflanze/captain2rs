@@ -13,14 +13,14 @@ use crate::{
         div::{FlippedBoundedRangesAround, Float, RealFloat, bounded_range_around_w_clipped},
     },
     perhaps_dump,
-    sparse::{Sparse, SparseFromViewAndMaskError, SparseMask},
+    sparse::{Sparse2, SparseFromViewAndMaskError, SparseMask},
     utillib::arc::CloneArc,
 };
 
 #[derive(Debug)]
 pub struct SparseDispersal {
     dispersal: Dispersal,
-    weights: Sparse<Float>,
+    weights: Sparse2<Float>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -55,7 +55,7 @@ impl SparseDispersal {
         );
         perhaps_dump!("SparseDispersal-new_weights", weights.view(), 0. ..10.);
 
-        let weights = Sparse::from_view_and_mask(weights.view(), mask).unwrap_or_else(
+        let weights = Sparse2::from_view_and_mask(weights.view(), mask).unwrap_or_else(
             |SparseFromViewAndMaskError::DimensionsDoNotMatch| {
                 unreachable!("we carried over dimensions so they do match")
             },
@@ -83,11 +83,11 @@ impl SparseDispersal {
         self.dispersal.cache.view()
     }
 
-    pub fn weights(&self) -> &Sparse<Float> {
+    pub fn weights(&self) -> &Sparse2<Float> {
         &self.weights
     }
 
-    fn _apply_mut<const M: usize>(&self, a: &mut Sparse<Float>, equalize: bool) {
+    fn _apply_mut<const M: usize>(&self, a: &mut Sparse2<Float>, equalize: bool) {
         let old_sum = if equalize { Some(a.sum()) } else { None };
 
         let (height, width) = self.dim();
@@ -166,7 +166,7 @@ impl SparseDispersal {
     /// you choose a small lambda_0 and use small time steps).
     pub fn apply_mut(
         &self,
-        a: &mut Sparse<Float>,
+        a: &mut Sparse2<Float>,
         equalize: bool,
     ) -> Result<(), SparseDispersalApplyError> {
         let am: &SparseMask = a.mask();
@@ -222,7 +222,7 @@ mod tests {
         ];
 
         {
-            let mut c = Sparse::from_view_and_pred(data.view(), |x| x == 0.)?;
+            let mut c = Sparse2::from_view_and_pred(data.view(), |x| x == 0.)?;
             assert_eq!(&mask, c.mask());
             match dispersal.apply_mut(&mut c, true) {
                 Ok(_) => panic!(
@@ -233,7 +233,7 @@ mod tests {
             }
         }
 
-        let mut c = Sparse::from_view_and_mask(data.view(), mask.clone_arc())?;
+        let mut c = Sparse2::from_view_and_mask(data.view(), mask.clone_arc())?;
         assert_eq_float!(data.sum(), c.decompress(0.).sum());
 
         dispersal.apply_mut(&mut c, true)?;
@@ -280,7 +280,7 @@ mod tests {
         let mut data = Array2::<Float>::ones((4, 3)) * 4.;
         data[(3, 0)] = 0.5;
 
-        let c0 = Sparse::from_view_and_mask(data.view(), mask.clone_arc())?;
+        let c0 = Sparse2::from_view_and_mask(data.view(), mask.clone_arc())?;
         let mut c = c0.clone();
         let sum_before = c.decompress(0.).sum();
         // assert_eq_float!(data.sum() - 4., sum_before);//
