@@ -13,7 +13,7 @@ use crate::{
         div::{Float, RealFloat},
         sparse_dispersal::{SparseDispersal, SparseDispersalApplyError},
     },
-    debug, def_id_vec_id,
+    debug, def_id,
     evaluation_cache::EvalForCache,
     id_vec::IdVec,
     sparse::{Sparse, SparseMask},
@@ -28,7 +28,7 @@ pub trait PickleInitializer {
 // #[derive(Debug)]
 // struct UnknownPickleInitializer;
 
-def_id_vec_id! {pub OrganismId}
+def_id! {pub OrganismId}
 
 #[derive(Debug)]
 struct Unknown;
