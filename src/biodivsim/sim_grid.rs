@@ -5,9 +5,8 @@
 use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use anyhow::bail;
-use enum_map::EnumMap;
 use ndarray::{Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis};
-use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
+use rayon::iter::ParallelIterator;
 
 use crate::{
     biodivsim::{
@@ -15,7 +14,7 @@ use crate::{
         sparse_dispersal::{SparseDispersal, SparseDispersalApplyError},
     },
     debug, def_id_vec_id,
-    evaluation_cache::{EvalForCache, EvaluationCache},
+    evaluation_cache::EvalForCache,
     id_vec::IdVec,
     sparse::{Sparse, SparseMask},
     utillib::arc::CloneArc,
@@ -81,7 +80,7 @@ pub struct SimGridParamsWithoutDefaults {
     alpha: Float,
     /// initial (max) carrying capacity
     k_max: Float,
-    dispersal_parameters: IdVec<OrganismId, Float>,
+    dispersal_parameters: IdVec<OrganismId, DispersalParameters>,
     disturbance_initializer: Float, // XX?
     /// vector of sensitivity per species
     disturbance_sensitivity: Array1<Float>, // XX? XX also,  species as a key type wrap?
@@ -117,8 +116,10 @@ pub struct SimGridParamsWithDefaults {
 
     /// How suitable a pixel is for a given species
     habitat_suitability: Option<IdVec<OrganismId, Array2<Float>>>,
-    // Daniele: not used here?
-    future_habitat_suitability: Option<Unknown>, // XX?
+
+    // (Daniele: not used here?)
+    future_habitat_suitability: Option<Unknown>,
+
     /// Climate change: multiplier per step(?) for habitat_suitability
     delta_suitability_per_step: Option<IdVec<OrganismId, Array2<Float>>>,
 
@@ -127,6 +128,7 @@ pub struct SimGridParamsWithDefaults {
 
     /// max number of individuals of a species per cell -- used!
     k_species: Option<IdVec<OrganismId, Float>>,
+
     rm_lingering_pops: bool,
 
     /// The names of species
@@ -156,7 +158,6 @@ impl Default for SimGridParamsWithDefaults {
             future_habitat_suitability: None,
             delta_suitability_per_step: None,
             species_threshold_per_cell: 1.,
-            precomputed_dispersal_probs: None,
             k_species: None,
             rm_lingering_pops: false,
             species_ids: None,
@@ -169,10 +170,11 @@ impl SimGridParamsWithDefaults {
     /// np.newaxis] * habitat_suitability")
     pub fn k_species3d(&self) -> Option<ArrayView3<'_, Float>> {
         self.k_species.as_ref().map(|k_species| {
-            k_species
-                .view()
-                .into_shape((k_species.len(), 1, 1))
-                .expect("compatible statically")
+            // k_species
+            //     .view()
+            //     .into_shape((k_species.len(), 1, 1))
+            //     .expect("compatible statically")
+            todo!()
         })
     }
 }
@@ -207,13 +209,11 @@ struct DispersalParameters {
     lambda_0: RealFloat,
 }
 
-impl EvalForCache<SparseDispersal, EnumMap<OrganismKind, Arc<SparseMask>>> for DispersalParameters {
-    fn eval(&self, masks: &EnumMap<OrganismKind, Arc<SparseMask>>) -> SparseDispersal {
-        let Self {
-            lambda_0,
-        } = self;
+impl EvalForCache<SparseDispersal, Arc<SparseMask>> for DispersalParameters {
+    fn eval(&self, mask: &Arc<SparseMask>) -> SparseDispersal {
+        let Self { lambda_0 } = self;
         let threshold = 3; // XX todo: calculate from lambda_0
-        SparseDispersal::new(*lambda_0, threshold, masks[*organism_kind].clone_arc())
+        SparseDispersal::new(*lambda_0, threshold, mask.clone_arc())
     }
 }
 
@@ -404,7 +404,7 @@ impl SimGrid {
 
         // let num_candidates;
         // let norm_candidates;
-        if ! self.doing_dispersal_before_death() {
+        if !self.doing_dispersal_before_death() {
             // np.einsum("sij,ijnm->snm", self._h, self._dumping_dist)
             // let num_candidates =
             if let Some(grid) = &mut self.grid {
