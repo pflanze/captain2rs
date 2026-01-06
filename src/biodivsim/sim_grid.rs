@@ -403,13 +403,9 @@ impl SimGrid {
             if let Some(grid) = &mut self.grid {
                 grid.h.par_iter_mut_enumerated().for_each(|(id, h)| {
                     let params = &self.params_without_defaults.dispersal_parameters[id];
-                    let dispersal = &grid.dispersals[params];
-                    match dispersal.apply_mut(h, true) {
-                        Ok(()) => (),
-                        Err(SparseDispersalApplyError::NotEqMask) => {
-                            panic!("we ensure the masks match")
-                        }
-                    }
+                    grid.dispersals[params]
+                        .apply_mut(h, true)
+                        .expect("the masks match")
                 });
             } else {
                 warn!("have no grid!");
