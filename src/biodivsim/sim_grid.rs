@@ -196,13 +196,6 @@ struct SimGridDerived {
     protection_matrix: Array2<Float>,
 }
 
-/// (cj:) determines which mask to use
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, enum_map::Enum)]
-enum OrganismKind {
-    Land,
-    Sea,
-}
-
 /// (cj:) Parameters for SparseDispersal::new
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct DispersalParameters {
