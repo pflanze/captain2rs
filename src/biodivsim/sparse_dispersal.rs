@@ -24,10 +24,8 @@ pub struct SparseDispersal {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum SparseDispersalApplyError {
-    #[error("the data passed to the dispersal does not match its mask (pointer equality check)")]
-    NotEqMask,
-}
+#[error("the data passed to the dispersal does not match its mask (pointer equality check)")]
+pub struct NonEqualMaskError;
 
 impl SparseDispersal {
     /// Carries the cost of creating the threshold cache and
@@ -168,11 +166,11 @@ impl SparseDispersal {
         &self,
         a: &mut Sparse2<Float>,
         equalize: bool,
-    ) -> Result<(), SparseDispersalApplyError> {
+    ) -> Result<(), NonEqualMaskError> {
         let am: &SparseMask = a.mask();
         let sm: &SparseMask = self.mask();
         if !std::ptr::eq(am, sm) {
-            return Err(SparseDispersalApplyError::NotEqMask);
+            return Err(NonEqualMaskError);
         }
         Ok(_dispersal_dispatch!(
             self.dispersal.threshold, { self._apply_mut::< } { >(a, equalize) }
@@ -226,10 +224,10 @@ mod tests {
             assert_eq!(&mask, c.mask());
             match dispersal.apply_mut(&mut c, true) {
                 Ok(_) => panic!(
-                    "expecting to get a NotEqMask error \
+                    "expecting to get a NonEqualMaskError error \
                      (since it is reconstructed, not pointer eq)"
                 ),
-                Err(SparseDispersalApplyError::NotEqMask) => (),
+                Err(NonEqualMaskError) => (),
             }
         }
 
