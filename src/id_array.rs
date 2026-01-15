@@ -104,6 +104,7 @@ impl<Idx: IdAsIndex, T> From<Vec<T>> for IdArray1<Idx, T> {
     }
 }
 
+// def_id_array_2plus! { IdArray1: Array1, at: ArrayView0<'_, T> } --> see above
 def_id_array_2plus! { IdArray2: Array2, at: ArrayView1<'_, T> }
 def_id_array_2plus! { IdArray3: Array3, at: ArrayView2<'_, T> }
 def_id_array_2plus! { IdArray4: Array4, at: ArrayView3<'_, T> }
