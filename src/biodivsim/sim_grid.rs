@@ -92,7 +92,7 @@ pub struct SimGridParamsWithoutDefaults {
 
 /// Climate change parameters :
 pub struct DeltaSuitabilityPerStep {
-    /// a map of multipliers per step(?) for habitat_suitability
+    /// a map of deltas per step for habitat_suitability
     pub delta: Array2<Float>,
 }
 
@@ -121,15 +121,12 @@ pub struct SimGridParamsWithDefaults {
     disturbance_dep_dispersal: bool, // XX? Python uses it as a boolean, but initialized to 1
     species_cell_specific_capacity: Option<Unknown>, // XX?
 
-    /// How suitable a pixel is for a given species
-    habitat_suitability: Option<IdArray3<OrganismId, Float>>,
-
     // (Daniele: not used here?)
     future_habitat_suitability: Option<Unknown>,
 
-    /// Climate change: multiplier per step(?) for habitat_suitability
-    // XXX do     habitat_suitability: Option<IdArray3<OrganismId, Float>>, ?
-    delta_suitability_per_step: Option<IdVec<OrganismId, DeltaSuitabilityPerStep>>,
+    /// Climate change: a map of deltas per step for
+    /// habitat_suitability -- default: 0
+    delta_suitability_per_step: Option<IdVec<OrganismId, Sparse2<Float>>>,
 
     /// Individuals (but float), to detect/decide whether a species is present. Probably 1.
     species_threshold_per_cell: Float,
@@ -162,7 +159,6 @@ impl Default for SimGridParamsWithDefaults {
             climate_as_disturbance: true, // XX Python initializes it to 1
             disturbance_dep_dispersal: true, // XX Python initializes it to 1
             species_cell_specific_capacity: None,
-            habitat_suitability: None,
             future_habitat_suitability: None,
             delta_suitability_per_step: None,
             species_threshold_per_cell: 1.,
@@ -201,6 +197,12 @@ struct SimGridDerived {
     additional_carbon_matrix: Array2<Float>,
     selective_disturbance_matrix: Array2<Float>,
     protection_matrix: Array2<Float>,
+    // Was:
+    // dumping_dist: Array4<Float>,
+    // now:
+    /// A pre-generated cache of `SparseDispersal` datastructures for
+    /// all `DispersalParameters` as determined by the organisms.
+    dispersal_for: HashMap<DispersalParameters, SparseDispersal>,
 }
 
 /// (cj:) Parameters for SparseDispersal::new
@@ -217,26 +219,20 @@ impl EvalForCache<SparseDispersal, Arc<SparseMask>> for DispersalParameters {
     }
 }
 
-/// Initialized via `SimGrid::init_grid`
-struct Grid {
+/// Mutated values
+struct SimGridState {
     // was:
     // h: Array3<Float>,
     // now:
     /// Organism concentrations for each organism
     h: IdVec<OrganismId, Sparse2<Float>>,
 
-    // Was:
-    // dumping_dist: Array4<Float>,
-    // now:
-    /// A pre-generated cache of `SparseDispersal` datastructures for
-    /// all `DispersalParameters` as determined by the organisms.
-    dispersal_for: HashMap<DispersalParameters, SparseDispersal>,
-}
+    /// How suitable a pixel is for a given species -- XXQ OK to be sparse?
+    habitat_suitability: IdVec<OrganismId, Sparse2<Float>>,
 
-/// Mutated values
-struct SimGridState {
     /// (max) carrying capacity -- same for all organisms.
     k_max: Array2<Float>,
+
     counter: usize,
 }
 
@@ -244,7 +240,6 @@ pub struct SimGrid {
     params_without_defaults: SimGridParamsWithoutDefaults,
     params_with_defaults: SimGridParamsWithDefaults,
     derived: SimGridDerived,
-    grid: Option<Grid>,
     state: SimGridState,
 }
 
@@ -273,6 +268,8 @@ impl SimGrid {
     pub fn new(
         params_without_defaults: SimGridParamsWithoutDefaults,
         mut params_with_defaults: SimGridParamsWithDefaults,
+        h: IdVec<OrganismId, Sparse2<Float>>,
+        initial_habitat_suitability: Option<IdArray3<OrganismId, Float>>,
     ) -> Self {
         let length = params_without_defaults.length;
 
@@ -322,7 +319,31 @@ impl SimGrid {
         let reference_grid_pu = None;
         let n_pus = None;
 
+        let dispersal_for = { todo!() };
+
         let k_max = params_without_defaults.k_max * Array2::ones((length, length));
+
+        // Moved from init_grid, XX todo
+        {
+            // XX self.updateAlphaHistogram(); //  (Design XX?)
+
+            // XX this is not used anywhere, is it?
+            // self._climate_opt_sp_3D, self._climate_range_sp_3D = self.getClimateTolerance()
+
+            // if self.params_with_defaults.disturbance_dep_dispersal {
+            //     unimplemented!("Disturbance-dependent dispersal not implemented");
+            //     // self._diag_list = getDiag.get_diagonals_from_pickle("../scripts/diagonals50.pkl")
+            // }
+
+            // XXX ^ oh was this the reason for separate,  the self call?
+        }
+
+        let habitat_suitability =
+            if let Some(initial_habitat_suitability) = initial_habitat_suitability {
+                todo!()
+            } else {
+                todo!()
+            };
 
         Self {
             params_without_defaults,
@@ -341,9 +362,14 @@ impl SimGrid {
                 additional_carbon_matrix,
                 selective_disturbance_matrix,
                 protection_matrix,
+                dispersal_for,
             },
-            grid: None,
-            state: SimGridState { k_max, counter: 0 },
+            state: SimGridState {
+                h,
+                habitat_suitability,
+                k_max,
+                counter: 0,
+            },
         }
     }
 
@@ -351,48 +377,6 @@ impl SimGrid {
         match self.params_with_defaults.dispersal_before_death {
             DispersalWhen::BeforeDeath => true,
             DispersalWhen::AfterDeath => false,
-        }
-    }
-
-    /// XX initialize with random data? todo: rename method accordingly? -- strip it
-    pub fn init_grid(&mut self, state_initializer: impl PickleInitializer) {
-        // XX println!(
-        //     "\nself._dumping_dist {:?}",
-        //     self.grid.as_ref().map(|v| &v.dumping_dist)
-        // );
-
-        // random histogram
-        let h = state_initializer.get_initial_state(
-            self.state.k_max.view(),
-            self.params_without_defaults.num_species,
-            self.params_without_defaults.length,
-        );
-        // init dumping factors (unless already provided)
-        if let Some(grid) = &mut self.grid {
-            grid.h = sparse_h_from_array3(h);
-        } else {
-            // XXQ -- there was a single lambda_0 option in Python;
-            // how? Even still want it, except for testing? Why
-            // init_grid method ?
-
-            // self.grid = Some(Grid {
-            //     h,
-            //     dispersal_for: SparseDispersal::new(
-            //         self.params_without_defaults.lambda_0,
-            //         3, // XX?
-            //         mask.clone_arc(),
-            //     ),
-            // });
-        }
-
-        // XX self.updateAlphaHistogram(); //  (Design XX?)
-
-        // XX this is not used anywhere, is it?
-        // self._climate_opt_sp_3D, self._climate_range_sp_3D = self.getClimateTolerance()
-
-        if self.params_with_defaults.disturbance_dep_dispersal {
-            unimplemented!("Disturbance-dependent dispersal not implemented");
-            // self._diag_list = getDiag.get_diagonals_from_pickle("../scripts/diagonals50.pkl")
         }
     }
 
@@ -416,46 +400,41 @@ impl SimGrid {
                     self.update_habitat_suitability();
                 }
 
-                if let Some(grid) = &mut self.grid {
-                    grid.h.par_iter_mut_enumerated().for_each(|(id, h)| {
-                        // params is just lambda_0, currently
-                        let params = &self.params_without_defaults.dispersal_parameters[id];
-                        grid.dispersal_for[params]
-                            .apply_mut(h, true)
-                            .expect("the masks match")
-                    });
-                } else {
-                    warn!("have no grid!");
-                }
+                self.state.h.par_iter_mut_enumerated().for_each(|(id, h)| {
+                    // params is just lambda_0, currently
+                    let params = &self.params_without_defaults.dispersal_parameters[id];
+                    self.derived.dispersal_for[params]
+                        .apply_mut(h, true)
+                        .expect("the masks match")
+                });
             }
         }
 
         debug!("killing individuals");
 
         if self.params_with_defaults.climate_model.0 != 0 {
-
         } else {
             // nothing to do
         }
-        
+
         todo!();
 
         self.state.counter += 1;
     }
 
     pub fn update_habitat_suitability(&mut self) {
-        if let Some(habitat_suitability) = &mut self.params_with_defaults.habitat_suitability {
-            // XX bundle with habitat_suitability?
-            let delta_suitability_per_step = self
-                .params_with_defaults
-                .delta_suitability_per_step
-                .as_ref()
-                .expect("present if habitat_suitability is present, OK?");
-            habitat_suitability
+        if let Some(delta_suitability_per_step) = self
+            .params_with_defaults
+            .delta_suitability_per_step
+            .as_ref()
+        {
+            self.state
+                .habitat_suitability
                 .par_iter_mut_enumerated()
-                .expect("can XX")
                 .for_each(|(organism_id, hs)| {
-                    let delta_suitability_per_step = delta_suitability_per_step[organism_id].delta;
+                    let delta_suitability_per_step = &delta_suitability_per_step[organism_id];
+
+                    *hs += delta_suitability_per_step; // XXX and K stuff below, too
 
                     // XX just drop negative values, right? XXQ but
                     // Daniele said was a multiplier?
