@@ -76,6 +76,12 @@ macro_rules! def_id_array_2plus {
                 self.array.index_axis(Axis(0), id.id_as_index())
             }
         }
+
+        // Note: can't implement Index for the first dimension because
+        // referencing yields ArrayViewX objects which are temporary
+        // objects (also containing a lifetime that can't be
+        // specified) thus don't suit the Index API which returns
+        // normal references.
     }
 }
 
