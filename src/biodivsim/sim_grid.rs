@@ -364,10 +364,13 @@ impl SimGrid {
         if let Some(grid) = &mut self.grid {
             grid.h = sparse_h_from_array3(h);
         } else {
-            todo!()
+            // XXQ -- there was a single lambda_0 option in Python;
+            // how? Even still want it, except for testing? Why
+            // init_grid method ?
+
             // self.grid = Some(Grid {
             //     h,
-            //     dumping_dist: SparseDispersal::new(
+            //     dispersal_for: SparseDispersal::new(
             //         self.params_without_defaults.lambda_0,
             //         3, // XX?
             //         mask.clone_arc(),
@@ -400,15 +403,18 @@ impl SimGrid {
         if !self.doing_dispersal_before_death() {
             // np.einsum("sij,ijnm->snm", self._h, self._dumping_dist)
             // let num_candidates =
-            if let Some(grid) = &mut self.grid {
-                grid.h.par_iter_mut_enumerated().for_each(|(id, h)| {
-                    let params = &self.params_without_defaults.dispersal_parameters[id];
-                    grid.dispersal_for[params]
-                        .apply_mut(h, true)
-                        .expect("the masks match")
-                });
-            } else {
-                warn!("have no grid!");
+
+            if !skip_dispersal {
+                if let Some(grid) = &mut self.grid {
+                    grid.h.par_iter_mut_enumerated().for_each(|(id, h)| {
+                        let params = &self.params_without_defaults.dispersal_parameters[id];
+                        grid.dispersal_for[params]
+                            .apply_mut(h, true)
+                            .expect("the masks match")
+                    });
+                } else {
+                    warn!("have no grid!");
+                }
             }
         }
         todo!();
