@@ -90,10 +90,10 @@ pub struct SimGridParamsWithoutDefaults {
     disturbance_matrix_diff: Float,
 }
 
-/// Climate change:
+/// Climate change parameters :
 pub struct DeltaSuitabilityPerStep {
-    /// multiplier per step(?) for habitat_suitability
-    pub delta: Float,
+    /// a map of multipliers per step(?) for habitat_suitability
+    pub delta: Array2<Float>,
 }
 
 pub struct SimGridParamsWithDefaults {
@@ -128,6 +128,7 @@ pub struct SimGridParamsWithDefaults {
     future_habitat_suitability: Option<Unknown>,
 
     /// Climate change: multiplier per step(?) for habitat_suitability
+    // XXX do     habitat_suitability: Option<IdArray3<OrganismId, Float>>, ?
     delta_suitability_per_step: Option<IdVec<OrganismId, DeltaSuitabilityPerStep>>,
 
     /// Individuals (but float), to detect/decide whether a species is present. Probably 1.
@@ -353,7 +354,7 @@ impl SimGrid {
         }
     }
 
-    /// XX initialize with random data? todo: rename method accordingly?
+    /// XX initialize with random data? todo: rename method accordingly? -- strip it
     pub fn init_grid(&mut self, state_initializer: impl PickleInitializer) {
         // XX println!(
         //     "\nself._dumping_dist {:?}",
