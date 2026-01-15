@@ -11,7 +11,7 @@ use rayon::iter::ParallelIterator;
 use crate::{
     biodivsim::{
         div::{Float, RealFloat},
-        sparse_dispersal::{NonEqualMaskError, SparseDispersal},
+        sparse_dispersal::SparseDispersal,
     },
     debug, def_id,
     evaluation_cache::EvalForCache,
