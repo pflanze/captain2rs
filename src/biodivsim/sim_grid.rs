@@ -223,7 +223,7 @@ struct Grid {
     // now:
     /// A pre-generated cache of `SparseDispersal` datastructures for
     /// all `DispersalParameters` as determined by the organisms.
-    dispersals: HashMap<DispersalParameters, SparseDispersal>,
+    dispersal_for: HashMap<DispersalParameters, SparseDispersal>,
 }
 
 /// Mutated values
@@ -403,7 +403,7 @@ impl SimGrid {
             if let Some(grid) = &mut self.grid {
                 grid.h.par_iter_mut_enumerated().for_each(|(id, h)| {
                     let params = &self.params_without_defaults.dispersal_parameters[id];
-                    grid.dispersals[params]
+                    grid.dispersal_for[params]
                         .apply_mut(h, true)
                         .expect("the masks match")
                 });
