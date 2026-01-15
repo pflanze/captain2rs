@@ -428,6 +428,15 @@ impl SimGrid {
                 }
             }
         }
+
+        debug!("killing individuals");
+
+        if self.params_with_defaults.climate_model.0 != 0 {
+
+        } else {
+            // nothing to do
+        }
+        
         todo!();
 
         self.state.counter += 1;
