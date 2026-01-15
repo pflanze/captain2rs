@@ -6,7 +6,7 @@ use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use anyhow::bail;
 use ndarray::{Array1, Array2, Array3, ArrayView1, ArrayView2, ArrayView3, Axis};
-use rayon::iter::ParallelIterator;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::{
     biodivsim::{
@@ -90,6 +90,12 @@ pub struct SimGridParamsWithoutDefaults {
     disturbance_matrix_diff: Float,
 }
 
+/// Climate change:
+pub struct DeltaSuitabilityPerStep {
+    /// multiplier per step(?) for habitat_suitability
+    pub delta: Float,
+}
+
 pub struct SimGridParamsWithDefaults {
     selectivedisturbance_initializer: Float, // XX?
     /// vector of selective sensitivity per species
@@ -122,7 +128,7 @@ pub struct SimGridParamsWithDefaults {
     future_habitat_suitability: Option<Unknown>,
 
     /// Climate change: multiplier per step(?) for habitat_suitability
-    delta_suitability_per_step: Option<IdArray3<OrganismId, Float>>,
+    delta_suitability_per_step: Option<IdVec<OrganismId, DeltaSuitabilityPerStep>>,
 
     /// Individuals (but float), to detect/decide whether a species is present. Probably 1.
     species_threshold_per_cell: Float,
@@ -405,8 +411,13 @@ impl SimGrid {
             // let num_candidates =
 
             if !skip_dispersal {
+                if *update_suitability {
+                    self.update_habitat_suitability();
+                }
+
                 if let Some(grid) = &mut self.grid {
                     grid.h.par_iter_mut_enumerated().for_each(|(id, h)| {
+                        // params is just lambda_0, currently
                         let params = &self.params_without_defaults.dispersal_parameters[id];
                         grid.dispersal_for[params]
                             .apply_mut(h, true)
@@ -420,6 +431,30 @@ impl SimGrid {
         todo!();
 
         self.state.counter += 1;
+    }
+
+    pub fn update_habitat_suitability(&mut self) {
+        if let Some(habitat_suitability) = &mut self.params_with_defaults.habitat_suitability {
+            // XX bundle with habitat_suitability?
+            let delta_suitability_per_step = self
+                .params_with_defaults
+                .delta_suitability_per_step
+                .as_ref()
+                .expect("present if habitat_suitability is present, OK?");
+            habitat_suitability
+                .par_iter_mut_enumerated()
+                .expect("can XX")
+                .for_each(|(organism_id, hs)| {
+                    let delta_suitability_per_step = delta_suitability_per_step[organism_id].delta;
+
+                    // XX just drop negative values, right? XXQ but
+                    // Daniele said was a multiplier?
+
+                    // suit_tmp = np.maximum(0, self._habitat_suitability + self._delta_suitability_per_step['delta']) + 0
+                    // self.set_habitat_suitability(suit_tmp)
+                    // self.update_K_species3D()
+                });
+        }
     }
 }
 
